@@ -1,6 +1,8 @@
+import 'package:booking_app/utils/database_manager.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/appointment_model.dart';
+import 'dart:io';
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
@@ -22,7 +24,7 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'appointments.db');
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -40,12 +42,29 @@ class DatabaseHelper {
       time TEXT
     )
   ''');
+
+    await db.execute('''
+  CREATE TABLE week_preferences (
+    week TEXT PRIMARY KEY,
+    locaation TEXT
+    )
+''');
   }
 
   // Upgrade the appointments table
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    await db.execute('DROP TABLE IF EXISTS appointments');
-    await _onCreate(db, newVersion);
+    if (oldVersion < 3) {
+      await db.execute('DROP TABLE IF EXISTS appointments');
+      await _onCreate(db, newVersion);
+    }
+    if (oldVersion < 4) {
+      await db.execute('''
+       CREATE TABLE week_preferences(
+         week TEXT PRIMARY KEY,
+         location TEXT
+       )
+      ''');
+    }
   }
 
   // Insert an appointment into the database
@@ -163,6 +182,7 @@ class DatabaseHelper {
   }
 
   Future<void> closeDatabase() async {
+    if (_database == null) return;
     Database db = await database;
     await db.close();
   }
@@ -175,5 +195,41 @@ class DatabaseHelper {
     );
 
     return result;
+  }
+
+  Future<void> setWeekPreference(String weekKey, String location) async {
+    Database db = await database;
+    await db.insert(
+      'week_preferences',
+      {'week': weekKey, 'location': location},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<String?> getWeekPreference(String weekKey) async {
+    Database db = await database;
+    List<Map<String, dynamic>> result = await db.query(
+      'week_preferences',
+      where: 'week = ?',
+      whereArgs: [weekKey],
+    );
+    if (result.isNotEmpty) {
+      return result.first['location'] as String?;
+    }
+    return null;
+  }
+
+  Future<void> migrateDatabase(String newPath) async {
+    final oldPath = await StorageManager.getDatabasePath();
+    final newDbPath = join(newPath, 'appointments.db');
+
+    if (await File(oldPath).exists()) {
+      await File(oldPath).copy(newDbPath);
+      await File(oldPath).delete();
+    }
+
+    await closeDatabase();
+    await StorageManager.setStoragePath(newPath);
+    _database = null;
   }
 }

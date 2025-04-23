@@ -1,3 +1,4 @@
+import 'package:booking_app/providers/storage_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
@@ -10,6 +11,7 @@ import 'package:booking_app/services/pdf_appointment.dart';
 import 'package:booking_app/screens/pdf_preview_screen.dart';
 import 'package:pdf/pdf.dart';
 import 'package:booking_app/screens/edit_appointment_screen.dart';
+import '../widgets/settings_dialog.dart';
 
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
@@ -21,12 +23,13 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with RouteAware {
   late List<String> timeList;
+  late List<String> morningTimeList;
   final DateFormat formatter = DateFormat('yyyy-MM-dd');
   // Default appointment location.
   Location _selectedLocation = Location.portLouis;
-
   TextEditingController patientNameController = TextEditingController();
   int _bookingRefresh = 0;
+  late String _weekKey;
 
   List<String> timeGenerator() {
     List<String> times = [];
@@ -37,10 +40,29 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     return times;
   }
 
+  List<String> morningTimeGenerator() {
+    List<String> times = [];
+    for (int i = 7; i < 12; i++) {
+      times.add('$i:00');
+      times.add('$i:30');
+    }
+    return times;
+  }
+
   @override
   void initState() {
     super.initState();
     timeList = timeGenerator();
+    morningTimeList = morningTimeGenerator();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final dateProvider = Provider.of<DateProvider>(context, listen: false);
+      // Get Monday's date from the working days
+      final monday = dateProvider.workingDays
+          .firstWhere((day) => day.weekday == DateTime.monday);
+      _weekKey = formatter.format(monday);
+      _loadWeekPreference();
+    });
   }
 
   @override
@@ -60,6 +82,39 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     setState(() {
       _bookingRefresh++; // This updates any FutureBuilders keyed by _bookingRefresh.
     });
+  }
+
+  Future<void> _loadWeekPreference() async {
+    final saved = await DatabaseHelper().getWeekPreference(_weekKey);
+    setState(() {
+      if (saved != null) {
+        _selectedLocation = Util.parseLocation(saved);
+      }
+    });
+  }
+
+  Future<void> _updateWeekPreference(Location newLocation) async {
+    await DatabaseHelper()
+        .setWeekPreference(_weekKey, Util.formatLocation(newLocation));
+    setState(() {
+      _selectedLocation = newLocation;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+          content: Text(
+              'Preferred location updated: ${Util.formatLocation(newLocation)}')),
+    );
+  }
+
+  void _updateWeekKeyAndLoadPreference() {
+    final dateProvider = Provider.of<DateProvider>(context, listen: false);
+    // Get Monday's date from the new working days.
+    final monday = dateProvider.workingDays.firstWhere(
+      (day) => day.weekday == DateTime.monday,
+      orElse: () => DateTime.now(),
+    );
+    _weekKey = formatter.format(monday);
+    _loadWeekPreference();
   }
 
   //* Inserts an appointment using AppointmentModel.
@@ -327,170 +382,275 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     );
   }
 
+  void _showSettingsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => SettingsDialog(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final dateProvider = Provider.of<DateProvider>(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-            'Week ${dateProvider.currentWeekNumber} - ${dateProvider.currentFullDate}'),
-      ),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: Location.values.map((location) {
-              return Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Radio<Location>(
-                    value: location,
-                    groupValue: _selectedLocation,
-                    onChanged: (Location? newLocation) {
-                      if (newLocation != null) {
-                        setState(() {
-                          _selectedLocation = newLocation;
-                        });
-                      }
-                    },
+    final allWorkingDays = dateProvider.workingDays;
+    final filteredDays =
+        allWorkingDays.where((day) => day.weekday != DateTime.monday).toList();
+    // Monday will be used for the Morning column.
+    final monday =
+        allWorkingDays.firstWhere((day) => day.weekday == DateTime.monday);
+    // Saturday is computed as Monday + 5 days.
+    final saturday = monday.add(const Duration(days: 5));
+    return Consumer<StorageNotifier>(
+        builder: (context, storageNOtifier, child) {
+      return Scaffold(
+        appBar: AppBar(
+            title: Text(
+                'Week ${dateProvider.currentWeekNumber} - ${dateProvider.currentFullDate}'),
+            actions: [
+              PopupMenuButton<String>(
+                icon: Icon(Icons.more_vert),
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'settings',
+                    child: Row(
+                      children: [
+                        Icon(Icons.settings, size: 20),
+                        SizedBox(width: 10),
+                        Text('Storage Settings')
+                      ],
+                    ),
                   ),
-                  Text(Util.formatLocation(location)),
-                  const SizedBox(width: 10),
                 ],
-              );
-            }).toList(),
-          ),
-
-          SizedBox(
-            width: 1000,
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: 'Search appointments...',
-                  prefixIcon: const Icon(Icons.search),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                ),
-                onSubmitted: (value) {
-                  if (value.isNotEmpty) {
-                    Navigator.of(context).pushNamed('/search', arguments: {
-                      'name': value,
-                    });
+                onSelected: (value) {
+                  if (value == 'settings') {
+                    _showSettingsDialog(context);
                   }
                 },
+              )
+            ]),
+        body: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Radio<String>(
+                      value: 'Port-Louis',
+                      groupValue: Util.formatLocation(_selectedLocation),
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          _updateWeekPreference(Util.parseLocation(newValue));
+                        }
+                      },
+                    ),
+                    Text('Port-Louis'),
+                    const SizedBox(width: 10),
+                  ],
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Radio<String>(
+                      value: 'Quatre-Bornes',
+                      groupValue: Util.formatLocation(_selectedLocation),
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          _updateWeekPreference(Util.parseLocation(newValue));
+                        }
+                      },
+                    ),
+                    Text('Quatre-Bornes'),
+                    const SizedBox(width: 10),
+                  ],
+                ),
+              ],
+            ),
+
+            SizedBox(
+              width: 1000,
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Search appointments...',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                  ),
+                  onSubmitted: (value) {
+                    if (value.isNotEmpty) {
+                      Navigator.of(context).pushNamed('/search', arguments: {
+                        'name': value,
+                      });
+                    }
+                  },
+                ),
               ),
             ),
-          ),
 
-          // Navigation and location switch controls.
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      dateProvider.previousWeek();
-                      setState(() {});
-                    },
-                    child: const Icon(Icons.arrow_back),
-                  ),
-                  const SizedBox(width: 4),
-                  ElevatedButton(
-                    onPressed: () {
-                      dateProvider.nextWeek();
-                      setState(() {});
-                    },
-                    child: const Icon(Icons.arrow_forward),
-                  ),
-                  const SizedBox(width: 50),
-                  ElevatedButton(
-                    onPressed: () {
-                      dateProvider.currentDate(DateTime.now());
-                      setState(() {});
-                    },
-                    child: const Text("Now"),
-                  ),
-                  const SizedBox(width: 4),
-                  ElevatedButton(
-                    onPressed: () {
-                      dateProvider.jumpWeeks(1);
-                      setState(() {});
-                    },
-                    child: const Text("1"),
-                  ),
-                  const SizedBox(width: 4),
-                  ElevatedButton(
-                    onPressed: () {
-                      dateProvider.jumpWeeks(2);
-                      setState(() {});
-                    },
-                    child: const Text("2"),
-                  ),
-                  const SizedBox(width: 4),
-                  ElevatedButton(
-                    onPressed: () {
-                      dateProvider.jumpWeeks(3);
-                      setState(() {});
-                    },
-                    child: const Text("3"),
-                  ),
-                  const SizedBox(width: 4),
-                  ElevatedButton(
-                    onPressed: () {
-                      dateProvider.jumpWeeks(4);
-                      setState(() {});
-                    },
-                    child: const Text("4"),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // Display the location switch.
-
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.vertical,
+            // Navigation and location switch controls.
+            Padding(
+              padding: const EdgeInsets.all(8.0),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                child: Table(
-                  border: TableBorder.all(
-                    color: Colors.white,
-                  ),
-                  // Increased column width from 120 to 200.
-                  defaultColumnWidth: const FixedColumnWidth(200),
+                child: Row(
                   children: [
-                    // Table Header
-                    TableRow(
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text(
-                            "Time",
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white),
-                          ),
+                    ElevatedButton(
+                      onPressed: () {
+                        dateProvider.previousWeek();
+                        _updateWeekKeyAndLoadPreference();
+                        setState(() {});
+                      },
+                      child: const Icon(Icons.arrow_back),
+                    ),
+                    const SizedBox(width: 4),
+                    ElevatedButton(
+                      onPressed: () {
+                        dateProvider.nextWeek();
+                        _updateWeekKeyAndLoadPreference();
+                        setState(() {});
+                      },
+                      child: const Icon(Icons.arrow_forward),
+                    ),
+                    const SizedBox(width: 50),
+                    ElevatedButton(
+                      onPressed: () {
+                        dateProvider.currentDate(DateTime.now());
+                        _updateWeekKeyAndLoadPreference();
+                        setState(() {});
+                      },
+                      child: const Text("Now"),
+                    ),
+                    const SizedBox(width: 4),
+                    ElevatedButton(
+                      onPressed: () {
+                        dateProvider.jumpWeeks(1);
+                        _updateWeekKeyAndLoadPreference();
+                        setState(() {});
+                      },
+                      child: const Text("1"),
+                    ),
+                    const SizedBox(width: 4),
+                    ElevatedButton(
+                      onPressed: () {
+                        dateProvider.jumpWeeks(2);
+                        _updateWeekKeyAndLoadPreference();
+                        setState(() {});
+                      },
+                      child: const Text("2"),
+                    ),
+                    const SizedBox(width: 4),
+                    ElevatedButton(
+                      onPressed: () {
+                        dateProvider.jumpWeeks(3);
+                        _updateWeekKeyAndLoadPreference();
+                        setState(() {});
+                      },
+                      child: const Text("3"),
+                    ),
+                    const SizedBox(width: 4),
+                    ElevatedButton(
+                      onPressed: () {
+                        dateProvider.jumpWeeks(4);
+                        _updateWeekKeyAndLoadPreference();
+                        setState(() {});
+                      },
+                      child: const Text("4"),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Display the location switch.
+
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.vertical,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Table(
+                    border: TableBorder.all(
+                      color: Colors.white,
+                    ),
+                    // Increased column width from 120 to 200.
+                    defaultColumnWidth: const FixedColumnWidth(200),
+                    children: [
+                      // Table Header
+                      TableRow(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary,
                         ),
-                        for (var day
-                            in Provider.of<DateProvider>(context).workingDays)
+                        children: [
+                          Container(
+                            height: 55,
+                            decoration: BoxDecoration(
+                                borderRadius: BorderRadius.only(
+                                    topLeft: Radius.circular(8))),
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(
+                                "WeekDay Time",
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white),
+                              ),
+                            ),
+                          ),
+                          //* Table Column for WeekDays ( Tuesday to Friday )
+                          for (var day in filteredDays)
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Text(
+                                    "${Util.dayName(day.weekday)} ${day.day}/${day.month}",
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: Icon(Icons.print, color: Colors.white),
+                                  onPressed: () {
+                                    Navigator.of(context).pushNamed(
+                                        '/appointment-day',
+                                        arguments: {
+                                          'location': Util.formatLocation(
+                                              _selectedLocation),
+                                          'date': formatter.format(day),
+                                        });
+                                  },
+                                ),
+                              ],
+                            ),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(
+                              "Morning Time",
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white),
+                            ),
+                          ),
+                          //* Table Column for Saturday
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Padding(
                                 padding: const EdgeInsets.all(8.0),
                                 child: Text(
-                                  "${Util.dayName(day.weekday)} ${day.day}/${day.month}",
+                                  "Saturday ${saturday.day}/${saturday.month}",
                                   textAlign: TextAlign.center,
                                   style: const TextStyle(
                                       fontWeight: FontWeight.bold,
@@ -500,40 +660,102 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                               IconButton(
                                 icon: Icon(Icons.print, color: Colors.white),
                                 onPressed: () {
-                                  _openPdfPreview(day);
+                                  _openPdfPreview(saturday);
                                 },
                               ),
                             ],
                           ),
-                      ],
-                    ),
-                    // Table Rows
-                    ...timeList.map((timeSlot) {
-                      return TableRow(
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Text(
-                              timeSlot,
-                              textAlign: TextAlign.center,
+                        ],
+                      ),
+                      // Table Rows
+                      ...List.generate(timeList.length, (index) {
+                        final afternoonTimeSlot = timeList[index];
+                        final morningTimeSlot = morningTimeList[index];
+                        return TableRow(
+                          // (Intentionally left empty)
+                          children: [
+                            // First cell: afternoon time label.
+                            // Change bg color for first columns
+                            Container(
+                              alignment: Alignment.center,
+                              height: 55,
+                              decoration: BoxDecoration(
+                                borderRadius: index == 0
+                                    ? BorderRadius.only(
+                                        bottomLeft: Radius.circular(8),
+                                        bottomRight: Radius.circular(8))
+                                    : BorderRadius.circular(8),
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primary
+                                    .withAlpha(50),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Text(
+                                  afternoonTimeSlot,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary),
+                                ),
+                              ),
                             ),
-                          ),
-                          for (var day
-                              in Provider.of<DateProvider>(context).workingDays)
+
+                            // For each filtered day (Tuesday to Friday) show the afternoon booking cell.
+                            for (var day in filteredDays)
+                              Padding(
+                                padding: const EdgeInsets.all(4.0),
+                                child:
+                                    _buildBookingCell(day, afternoonTimeSlot),
+                              ),
+                            // Extra cell for Monday morning (using morningTimeSlot)
+                            Container(
+                              alignment: Alignment.center,
+                              height: 55,
+                              decoration: BoxDecoration(
+                                borderRadius: index == 0
+                                    ? BorderRadius.only(
+                                        bottomLeft: Radius.circular(8),
+                                        bottomRight: Radius.circular(8))
+                                    : BorderRadius.circular(8),
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primary
+                                    .withAlpha(50),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Text(
+                                  morningTimeSlot,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary),
+                                ),
+                              ),
+                            ),
+                            // Extra cell for Saturday (using afternoonTimeSlot)
                             Padding(
                               padding: const EdgeInsets.all(4.0),
-                              child: _buildBookingCell(day, timeSlot),
+                              child:
+                                  _buildBookingCell(saturday, morningTimeSlot),
                             ),
-                        ],
-                      );
-                    }),
-                  ],
+                          ],
+                        );
+                      }),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          )
-        ],
-      ),
-    );
+            )
+          ],
+        ),
+      );
+    });
   }
 }

@@ -6,7 +6,7 @@ Future<void> showEditAppointmentDialog({
   required Map<String, dynamic> appointment,
   required VoidCallback onUpdated, // Called after successful update.
 }) async {
-  final _formKey = GlobalKey<FormState>();
+  final formKey = GlobalKey<FormState>();
   // Initialize default date and time from the appointment.
   DateTime? selectedDate = DateTime.tryParse(appointment['date']);
   List<String> timeParts = appointment['time'].split(':');
@@ -40,7 +40,7 @@ Future<void> showEditAppointmentDialog({
         content: StatefulBuilder(
           builder: (context, setState) {
             return Form(
-              key: _formKey,
+              key: formKey,
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -148,7 +148,7 @@ Future<void> showEditAppointmentDialog({
           ),
           ElevatedButton(
             onPressed: () {
-              if (!(_formKey.currentState?.validate() ?? false)) return;
+              if (!(formKey.currentState?.validate() ?? false)) return;
               if (selectedDate == null || selectedTime == null) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(

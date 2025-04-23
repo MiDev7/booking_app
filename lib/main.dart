@@ -1,15 +1,23 @@
 import 'package:booking_app/screens/home_screen.dart';
 import 'package:booking_app/providers/date_provider.dart';
+import 'package:booking_app/providers/storage_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
+import 'package:booking_app/utils/database_helper.dart';
 import 'package:booking_app/screens/edit_appointment_screen.dart';
 import 'package:booking_app/screens/search_screen.dart';
+import 'package:booking_app/screens/appointment_day_screen.dart';
 
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
 void main() {
-  runApp(ChangeNotifierProvider(
-    create: (context) => DateProvider(),
+  WidgetsFlutterBinding.ensureInitialized();
+  DatabaseHelper().database;
+  runApp(MultiProvider(
+    providers: [
+      ChangeNotifierProvider(create: (context) => DateProvider()),
+      ChangeNotifierProvider(create: (context) => StorageNotifier()),
+    ],
     child: const MyApp(),
   ));
 }
@@ -46,6 +54,14 @@ class MyApp extends StatelessWidget {
               as Map<String, dynamic>;
           return SearchScreen(
             name: args['name'],
+          );
+        },
+        '/appointment-day': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments
+              as Map<String, dynamic>;
+          return AppointmentDayScreen(
+            date: args['date'],
+            location: args['location'],
           );
         },
       },

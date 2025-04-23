@@ -26,4 +26,15 @@ class Util {
         return "Quatre-Bornes";
     }
   }
+
+  static Location parseLocation(String location) {
+    switch (location) {
+      case "Port-Louis":
+        return Location.portLouis;
+      case "Quatre-Bornes":
+        return Location.quatreBornes;
+      default:
+        throw Exception("Unknown location: $location");
+    }
+  }
 }
