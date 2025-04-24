@@ -40,7 +40,12 @@ class _EditAppointmentScreenState extends State<EditAppointmentScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-            'Edit Appointment ${widget.date} ${widget.time} ${widget.location.toLowerCase()}'),
+            'Edit Appointment ${widget.date} ${widget.time} ${widget.location.toLowerCase()}',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary
+            ),
+        ),
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _appointmentsFuture,
@@ -71,7 +76,7 @@ class _EditAppointmentScreenState extends State<EditAppointmentScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                " ${appointment['patientFirstName']} ${appointment['patientLastName'] ?? ""}",
+                                " ${appointment['patientFirstName'].toUpperCase()} ${appointment['patientLastName'].toUpperCase() ?? ""}",
                                 style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,

@@ -79,17 +79,18 @@ class _AppointmentDayScreenState extends State<AppointmentDayScreen> {
                           itemBuilder: (context, index) {
                             final appointment = appointments[index];
                             return Card(
+                              color: Theme.of(context).colorScheme.secondaryContainer,
                               child: ListTile(
                                 title: Text(
-                                    '${appointment['patientFirstName']} ${appointment['patientLastName']}'),
+                                    '${appointment['patientFirstName'].toUpperCase()} ${appointment['patientLastName'].toUpperCase()}',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+
+                                    )),
                                 subtitle: Text(
                                     '${appointment['date']} at ${appointment['time']}'),
-                                trailing: IconButton(
-                                  icon: const Icon(Icons.delete),
-                                  onPressed: () {
-                                    // Handle delete action
-                                  },
-                                ),
+
                               ),
                             );
                           },

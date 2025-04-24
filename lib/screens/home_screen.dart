@@ -417,7 +417,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 'Week ${dateProvider.currentWeekNumber} - ${dateProvider.currentFullDate}',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF18BBB9),
+                    color: Theme.of(context).colorScheme.primary
                 ),
                 textAlign: TextAlign.center,
               ),
