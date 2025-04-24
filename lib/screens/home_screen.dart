@@ -455,28 +455,28 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               ),
             ],
           ),
-            actions: [
-              PopupMenuButton<String>(
-                  icon: Icon(Icons.more_vert),
-                  itemBuilder: (context) => [
-                    PopupMenuItem(
-                      value: 'settings',
-                      child: Row(
-                        children: [
-                          Icon(Icons.settings, size: 20),
-                          SizedBox(width: 10),
-                          Text('Storage Settings')
-                        ],
-                      ),
-                    ),
-                  ],
-                  onSelected: (value) {
-                    if (value == 'settings') {
-                      _showSettingsDialog(context);
-                    }
-                  },
-                  )
-              ]
+            // actions: [
+            //   PopupMenuButton<String>(
+            //       icon: Icon(Icons.more_vert),
+            //       itemBuilder: (context) => [
+            //         PopupMenuItem(
+            //           value: 'settings',
+            //           child: Row(
+            //             children: [
+            //               Icon(Icons.settings, size: 20),
+            //               SizedBox(width: 10),
+            //               Text('Storage Settings')
+            //             ],
+            //           ),
+            //         ),
+            //       ],
+            //       onSelected: (value) {
+            //         if (value == 'settings') {
+            //           _showSettingsDialog(context);
+            //         }
+            //       },
+            //       )
+            //   ]
         ),
         body: Row(
           children: <Widget>[

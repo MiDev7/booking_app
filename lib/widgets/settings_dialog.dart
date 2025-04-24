@@ -1,3 +1,4 @@
+import 'package:booking_app/utils/database_helper.dart';
 import 'package:flutter/material.dart';
 import '../services/storage_service.dart';
 import '../utils/database_manager.dart';
@@ -60,6 +61,27 @@ class _SettingsDialogState extends State<SettingsDialog> {
                 print(newPath);
               },
             ),
+            ElevatedButton.icon(
+              icon: Icon(Icons.download),
+              label: Text('Load Storage '),
+              onPressed: () async {
+                // Replace this with your actual directory picker:
+                String? chosenDirectory = await StorageService.pickDirectory(context);
+                if (chosenDirectory != null &&
+                    await StorageManager.validateStoragePath(chosenDirectory)) {
+                  await DatabaseHelper().migrateDatabase(chosenDirectory);
+                  // Optionally update your StorageNotifier or show a success message.
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content:
+                        Text("Database loaded from new location successfully."),
+                  ));
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text("Invalid directory or unable to access it."),
+                  ));
+                }
+              },
+            )
           ],
         ),
       ),

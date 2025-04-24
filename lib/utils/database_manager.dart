@@ -16,6 +16,7 @@ class StorageManager {
       savedPath = join(directory.path, 'appointments.db');
       await prefs.setString(_dbPathKey, savedPath);
     }
+
     return savedPath;
   }
 
