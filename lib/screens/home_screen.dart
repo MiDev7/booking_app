@@ -600,7 +600,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                               color: Colors.white,
                             ),
                             // Increased column width from 120 to 200.
-                            defaultColumnWidth: const FixedColumnWidth(170),
+                            defaultColumnWidth: const FixedColumnWidth(180),
                             children: [
                               // Table Header
                               TableRow(

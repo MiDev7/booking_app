@@ -1,3 +1,5 @@
+import 'dart:nativewrappers/_internal/vm/lib/internal_patch.dart';
+
 import 'package:booking_app/utils/database_manager.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
@@ -11,11 +13,14 @@ class DatabaseHelper {
 
   static Database? _database;
 
+  static String? _dbPath;
+
   DatabaseHelper._internal();
 
   // Singleton pattern
   Future<Database> get database async {
     if (_database != null) return _database!;
+    _database = await _initDatabase();
     _database = await _initDatabase();
     return _database!;
   }
@@ -23,9 +28,9 @@ class DatabaseHelper {
   // Initialize the database
   Future<Database> _initDatabase() async {
     final directory = await getApplicationDocumentsDirectory();
-    String path = join( directory.path, 'appointments.db');
+    _dbPath = join( directory.path, 'appointments.db');
     return await openDatabase(
-      path,
+      _dbPath!,
       version: 1,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
@@ -106,7 +111,8 @@ class DatabaseHelper {
   }
 
   Future<bool> isAppointmentBooked(
-      String date, String time, String location) async {
+      String date, String time, String location) async
+  {
     final parts = time.split(':');
     final hour = int.parse(parts[0]);
     final minute = int.parse(parts[1]);
@@ -127,7 +133,8 @@ class DatabaseHelper {
   }
 
   Future<bool> updateAppointmentDateTimeLocation(
-      String id, String date, String time, String location) async {
+      String id, String date, String time, String location) async
+  {
     print("$id $date $time $location");
 
     Database db = await database;
@@ -153,7 +160,8 @@ class DatabaseHelper {
   }
 
   Future<int> isAppointmentBookedCount(
-      String date, String timeSlot, String location) async {
+      String date, String timeSlot, String location) async
+  {
     // Example: For a timeSlot "16:00", count appointments between 16:00 and 16:30.
     final parts = timeSlot.split(':');
     final hour = int.parse(parts[0]);
@@ -185,9 +193,11 @@ class DatabaseHelper {
   }
 
   Future<void> closeDatabase() async {
-    if (_database == null) return;
-    Database db = await database;
-    await db.close();
+    if (_database != null) {
+     await _database!.close();
+         _database = null;
+
+    }
   }
 
   Future<List<Map<String, dynamic>>> getAppointmentsByName(String name) async {
@@ -223,16 +233,22 @@ class DatabaseHelper {
   }
 
   Future<void> migrateDatabase(String newPath) async {
-    final oldPath = await StorageManager.getDatabasePath();
-    final newDbPath = join(newPath, 'appointments.db');
+    await closeDatabase();
 
+    final oldPath = await StorageManager.getDatabasePath();
+    print(oldPath);
+    final newDbPath = join(newPath, 'appointments.db');
+    print(newDbPath);
     if (await File(oldPath).exists()) {
       await File(oldPath).copy(newDbPath);
       await File(oldPath).delete();
     }
+    else {
+      await File(newDbPath).create(recursive: true);
+    }
 
-    await closeDatabase();
+    _dbPath = newPath;
     await StorageManager.setStoragePath(newPath);
-    _database = null;
+    _database = await _initDatabase();
   }
 }

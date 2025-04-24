@@ -37,7 +37,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
             Consumer<StorageNotifier>(
               builder: (context, storageNotifier, child) {
                 return Text(
-                  'Current Location:\n${storageNotifier.storagePath.isNotEmpty ? storageNotifier.storagePath : 'Default Storage'}',
+                  'Current Location: \n ${storageNotifier.storagePath}',
                   style: TextStyle(fontSize: 14),
                 );
               },
@@ -56,6 +56,8 @@ class _SettingsDialogState extends State<SettingsDialog> {
                     _currentPath = StorageManager.getDatabasePath();
                   });
                 }
+
+                print(newPath);
               },
             ),
           ],
