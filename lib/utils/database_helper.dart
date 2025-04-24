@@ -1,4 +1,5 @@
 import 'package:booking_app/utils/database_manager.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/appointment_model.dart';
@@ -21,10 +22,11 @@ class DatabaseHelper {
 
   // Initialize the database
   Future<Database> _initDatabase() async {
-    String path = join(await getDatabasesPath(), 'appointments.db');
+    final directory = await getApplicationDocumentsDirectory();
+    String path = join( directory.path, 'appointments.db');
     return await openDatabase(
       path,
-      version: 4,
+      version: 1,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -46,18 +48,19 @@ class DatabaseHelper {
     await db.execute('''
   CREATE TABLE week_preferences (
     week TEXT PRIMARY KEY,
-    locaation TEXT
+    location TEXT
     )
 ''');
   }
 
   // Upgrade the appointments table
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 3) {
+
+    if (oldVersion < 3 && oldVersion != 1) {
       await db.execute('DROP TABLE IF EXISTS appointments');
       await _onCreate(db, newVersion);
     }
-    if (oldVersion < 4) {
+    if (oldVersion < 4 && oldVersion != 1) {
       await db.execute('''
        CREATE TABLE week_preferences(
          week TEXT PRIMARY KEY,
