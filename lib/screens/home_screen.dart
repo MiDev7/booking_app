@@ -79,12 +79,14 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             TextButton(
               onPressed: () async {
                 if (passwordController.text.trim().isNotEmpty) {
+                  final newPassword = passwordController.text.trim();
                   final prefs = await SharedPreferences.getInstance();
-                  await prefs.setString(
-                      'userPassword', passwordController.text.trim());
+                  await prefs.setString('userPassword', newPassword);
+                  setState(() {
+                    _storedPassword = newPassword;
+                  });
                   Navigator.of(context).pop();
                 } else {
-                  // Optionally show an error message
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                         content: Text("Please enter a valid password")),

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ThemeProvider extends ChangeNotifier {
-  late Color _seedColor;
+  Color _seedColor = const Color(0xFF18BBB9);
   Color get seedColor => _seedColor;
 
   ThemeProvider() {
