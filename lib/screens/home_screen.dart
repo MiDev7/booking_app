@@ -29,7 +29,18 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   final DateFormat formatter = DateFormat('yyyy-MM-dd');
 
   // Default appointment location.
-  Location _selectedLocation = Location.portLouis;
+  Location _selectedLocation = Location.quatreBornes;
+  bool _isLocationEditable = false;
+  final String _password = 'admin123';
+
+  Future<void> _loadWeekPreference() async {
+    final saved = await DatabaseHelper().getWeekPreference(_weekKey);
+    setState(() {
+      _selectedLocation =
+          saved != null ? Util.parseLocation(saved) : Location.quatreBornes;
+    });
+  }
+
   TextEditingController patientNameController = TextEditingController();
   int _bookingRefresh = 0;
   late String _weekKey;
@@ -87,15 +98,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     });
   }
 
-  Future<void> _loadWeekPreference() async {
-    final saved = await DatabaseHelper().getWeekPreference(_weekKey);
-    setState(() {
-      if (saved != null) {
-        _selectedLocation = Util.parseLocation(saved);
-      }
-    });
-  }
-
   Future<void> _updateWeekPreference(Location newLocation) async {
     await DatabaseHelper()
         .setWeekPreference(_weekKey, Util.formatLocation(newLocation));
@@ -147,8 +149,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       _bookingRefresh++;
     });
   }
-
-  
 
   //* Navigate to Edit Appointment Screen
 
@@ -401,75 +401,169 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         builder: (context, storageNotifier, child) {
       return Scaffold(
         appBar: AppBar(
-          centerTitle: true,
-          elevation: 3,
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Week ${dateProvider.currentWeekNumber} - ${dateProvider.currentFullDate}',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.primary),
-                textAlign: TextAlign.center,
-              ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Radio<String>(
-                    value: 'Port-Louis',
-                    groupValue: Util.formatLocation(_selectedLocation),
-                    onChanged: (String? newValue) {
-                      if (newValue != null) {
-                        _updateWeekPreference(Util.parseLocation(newValue));
-                      }
-                    },
+            centerTitle: true,
+            elevation: 3,
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Week ${dateProvider.currentWeekNumber} - ${dateProvider.currentFullDate}',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(width: 20),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Location: ",
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.primary),
+                    ),
+                    _isLocationEditable
+                        ? Container(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 8.0),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surface,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                            child: DropdownButton<Location>(
+                              value: _selectedLocation,
+                              underline: Container(
+                                height: 40,
+                              ),
+                              icon: Icon(
+                                Icons.arrow_drop_down,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              onChanged: (Location? newValue) {
+                                if (newValue != null) {
+                                  setState(() {
+                                    _selectedLocation = newValue;
+                                  });
+                                }
+                              },
+                              items: [
+                                DropdownMenuItem(
+                                  value: Location.portLouis,
+                                  child: Text("Port-Louis"),
+                                ),
+                                DropdownMenuItem(
+                                  value: Location.quatreBornes,
+                                  child: Text("Quatre-Bornes"),
+                                ),
+                              ],
+                            ),
+                          )
+                        : Text(
+                            Util.formatLocation(_selectedLocation),
+                            style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary),
+                          ),
+                    IconButton(
+                      icon: Icon(
+                        _isLocationEditable
+                            ? Icons.lock_open_rounded
+                            : Icons.lock_rounded,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      onPressed: () {
+                        // If not editable, prompt for password
+                        if (!_isLocationEditable) {
+                          showDialog(
+                            context: context,
+                            builder: (context) {
+                              final TextEditingController passwordController =
+                                  TextEditingController();
+                              return AlertDialog(
+                                title: Text("Enter Password"),
+                                content: TextField(
+                                  controller: passwordController,
+                                  obscureText: true,
+                                  decoration: InputDecoration(
+                                    labelText: "Password",
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(context).pop(),
+                                    child: Text("Cancel"),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      if (passwordController.text ==
+                                          _password) {
+                                        setState(() {
+                                          _isLocationEditable = true;
+                                        });
+                                        Navigator.of(context).pop();
+                                      } else {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(SnackBar(
+                                          content: Text("Invalid password."),
+                                        ));
+                                      }
+                                    },
+                                    child: Text("Submit"),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        }
+                      },
+                    ),
+                    _isLocationEditable
+                        ? IconButton(
+                            icon: Icon(
+                              Icons.check_box_rounded,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            onPressed: () {
+                              _updateWeekPreference(_selectedLocation);
+                              setState(() {
+                                _isLocationEditable = false;
+                              });
+                            },
+                          )
+                        : Container(),
+                  ],
+                ),
+              ],
+            ),
+            actions: [
+              PopupMenuButton<String>(
+                icon: Icon(Icons.more_vert),
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'settings',
+                    child: Row(
+                      children: [
+                        Icon(Icons.settings, size: 20),
+                        SizedBox(width: 10),
+                        Text('Storage Settings')
+                      ],
+                    ),
                   ),
-                  Text('Port-Louis'),
-                  const SizedBox(width: 10),
                 ],
-              ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Radio<String>(
-                    value: 'Quatre-Bornes',
-                    groupValue: Util.formatLocation(_selectedLocation),
-                    onChanged: (String? newValue) {
-                      if (newValue != null) {
-                        _updateWeekPreference(Util.parseLocation(newValue));
-                      }
-                    },
-                  ),
-                  Text('Quatre-Bornes'),
-                  const SizedBox(width: 10),
-                ],
-              ),
-            ],
-          ),
-          // actions: [
-          //   PopupMenuButton<String>(
-          //       icon: Icon(Icons.more_vert),
-          //       itemBuilder: (context) => [
-          //         PopupMenuItem(
-          //           value: 'settings',
-          //           child: Row(
-          //             children: [
-          //               Icon(Icons.settings, size: 20),
-          //               SizedBox(width: 10),
-          //               Text('Storage Settings')
-          //             ],
-          //           ),
-          //         ),
-          //       ],
-          //       onSelected: (value) {
-          //         if (value == 'settings') {
-          //           _showSettingsDialog(context);
-          //         }
-          //       },
-          //       )
-          //   ]
-        ),
+                onSelected: (value) {
+                  if (value == 'settings') {
+                    _showSettingsDialog(context);
+                  }
+                },
+              )
+            ]),
         body: Row(
           children: <Widget>[
             Expanded(flex: 1, child: Container()),

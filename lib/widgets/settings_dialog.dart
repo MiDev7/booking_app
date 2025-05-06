@@ -1,4 +1,6 @@
 import 'package:booking_app/utils/database_helper.dart';
+import 'package:booking_app/widgets/color_picker_dialog.dart';
+import 'package:booking_app/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
 import '../services/storage_service.dart';
 import '../utils/database_manager.dart';
@@ -23,6 +25,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     return AlertDialog(
       title: Row(
         children: [
@@ -61,12 +64,14 @@ class _SettingsDialogState extends State<SettingsDialog> {
                 print(newPath);
               },
             ),
+            SizedBox(height: 20),
             ElevatedButton.icon(
               icon: Icon(Icons.download),
               label: Text('Load Storage '),
               onPressed: () async {
                 // Replace this with your actual directory picker:
-                String? chosenDirectory = await StorageService.pickDirectory(context);
+                String? chosenDirectory =
+                    await StorageService.pickDirectory(context);
                 if (chosenDirectory != null &&
                     await StorageManager.validateStoragePath(chosenDirectory)) {
                   await DatabaseHelper().migrateDatabase(chosenDirectory);
@@ -81,7 +86,25 @@ class _SettingsDialogState extends State<SettingsDialog> {
                   ));
                 }
               },
-            )
+            ),
+            SizedBox(height: 20),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.color_lens),
+              label: const Text('Choose Seed Color'),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => ColorPickerDialog(
+                    initialColor: themeProvider.seedColor,
+                    onColorChanged: (color) {
+                      Provider.of<ThemeProvider>(context, listen: false)
+                          .updateSeedColor(color);
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                );
+              },
+            ),
           ],
         ),
       ),
