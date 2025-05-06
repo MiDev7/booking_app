@@ -1,5 +1,7 @@
+import 'package:booking_app/screens/pdf_preview_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:booking_app/utils/database_helper.dart';
+import 'package:booking_app/services/pdf_appointment.dart';
 
 class AppointmentDayScreen extends StatefulWidget {
   final String date;
@@ -14,7 +16,6 @@ class AppointmentDayScreen extends StatefulWidget {
 
 class _AppointmentDayScreenState extends State<AppointmentDayScreen> {
   bool _sortAlphabetically = false;
-  final String _searchQuery = '';
 
   // Fetch all appointments for the given date, time, and location.
   Future<List<Map<String, dynamic>>> _fetchAppointments() async {
@@ -27,6 +28,37 @@ class _AppointmentDayScreenState extends State<AppointmentDayScreen> {
     setState(() {
       _sortAlphabetically = !_sortAlphabetically;
     });
+  }
+
+  //* Opens a PDF preview screen with the appointments for the selected day.
+  Future<void> _openPdfPreview(DateTime day) async {
+    final appointments = await _fetchAppointments();
+    final mutableAppointments = List<Map<String, dynamic>>.from(appointments);
+    if (appointments.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No appointments found for this day.'),
+        ),
+      );
+      return;
+    } else {
+      // Sort alphabetically
+
+      if (_sortAlphabetically) {
+        mutableAppointments.sort((a, b) {
+          final nameA =
+              '${a['patientFirstName']} ${a['patientLastName']}'.toLowerCase();
+          final nameB =
+              '${b['patientFirstName']} ${b['patientLastName']}'.toLowerCase();
+          return nameA.compareTo(nameB);
+        });
+      }
+    }
+    final pdf = await PdfAppointment.generatePdf(day, mutableAppointments,
+        location: widget.location);
+
+    Navigator.of(context).push(MaterialPageRoute(
+        builder: (context) => PdfPreviewScreen(pdfData: pdf)));
   }
 
   @override
@@ -61,17 +93,42 @@ class _AppointmentDayScreenState extends State<AppointmentDayScreen> {
               }
               return Center(
                 child: SizedBox(
-                  width: 500, // Limit the width of the list view.
+                  width: 700, // Limit the width of the list view.
                   child: Column(
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: ElevatedButton(
-                          onPressed: _toggleSort,
-                          child: Text(_sortAlphabetically
-                              ? 'Clear Sort'
-                              : 'Sort Alphabetically'),
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: ElevatedButton.icon(
+                              onPressed: _toggleSort,
+                              label: Text(_sortAlphabetically
+                                  ? 'Clear Sort'
+                                  : 'Sort Alphabetically'),
+                              icon: Icon(
+                                _sortAlphabetically
+                                    ? Icons.clear_all
+                                    : Icons.sort_by_alpha,
+                                size: 18,
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                DateTime date = DateTime.parse(widget.date);
+                                _openPdfPreview(date);
+                              },
+                              label: Text('Print'),
+                              icon: Icon(
+                                Icons.print,
+                                size: 18,
+                              ),
+                            ),
+                          )
+                        ],
                       ),
                       Expanded(
                         child: ListView.builder(
@@ -79,18 +136,18 @@ class _AppointmentDayScreenState extends State<AppointmentDayScreen> {
                           itemBuilder: (context, index) {
                             final appointment = appointments[index];
                             return Card(
-                              color: Theme.of(context).colorScheme.secondaryContainer,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .secondaryContainer,
                               child: ListTile(
                                 title: Text(
                                     '${appointment['patientFirstName'].toUpperCase()} ${appointment['patientLastName'].toUpperCase()}',
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14,
-
                                     )),
                                 subtitle: Text(
                                     '${appointment['date']} at ${appointment['time']}'),
-
                               ),
                             );
                           },

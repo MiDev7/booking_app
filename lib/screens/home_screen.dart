@@ -148,21 +148,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     });
   }
 
-  //* Opens a PDF preview screen with the appointments for the selected day.
-  Future<void> _openPdfPreview(DateTime day) async {
-    final formattedDate = formatter.format(day);
-    final appointments = await DatabaseHelper()
-        .getAppointmentsByDateAndLocation(
-            formattedDate, Util.formatLocation(_selectedLocation));
-    final pdf = await PdfAppointment.generatePdf(
-      day,
-      appointments,
-      location: Util.formatLocation(_selectedLocation),
-    );
-
-    Navigator.of(context).push(MaterialPageRoute(
-        builder: (context) => PdfPreviewScreen(pdfData: pdf)));
-  }
+  
 
   //* Navigate to Edit Appointment Screen
 

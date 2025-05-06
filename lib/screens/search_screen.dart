@@ -48,86 +48,96 @@ class _SearchScreenState extends State<SearchScreen> {
       appBar: AppBar(
         title: Text(
           "Search Result for: ${widget.name}",
-          style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
+          style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.primary),
         ),
         centerTitle: true,
       ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _appointmentsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else {
-            final filteredAppointments = snapshot.data ?? [];
-            if (filteredAppointments.isEmpty) {
-              return const Center(child: Text('No appointments found.'));
-            }
-            return ListView.builder(
-              itemCount: filteredAppointments.length,
-              itemBuilder: (context, index) {
-                final appointment = filteredAppointments[index];
-                return Card(
-                  color: Theme.of(context).colorScheme.secondaryContainer,
-                  elevation: 0.2,
-                  margin: const EdgeInsets.all(8.0),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Appointment details
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Name: ${appointment['patientFirstName'].toUpperCase()} ${appointment['patientLastName'].toUpperCase() ?? ""}',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+      body: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 700,
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: _appointmentsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                } else {
+                  final filteredAppointments = snapshot.data ?? [];
+                  if (filteredAppointments.isEmpty) {
+                    return const Center(child: Text('No appointments found.'));
+                  }
+                  return ListView.builder(
+                    itemCount: filteredAppointments.length,
+                    itemBuilder: (context, index) {
+                      final appointment = filteredAppointments[index];
+                      return Card(
+                        color: Theme.of(context).colorScheme.secondaryContainer,
+                        elevation: 0.2,
+                        margin: const EdgeInsets.all(8.0),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              // Appointment details
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Name: ${appointment['patientFirstName'].toUpperCase()} ${appointment['patientLastName'].toUpperCase() ?? ""}',
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text('Date: ${appointment['date']}'),
+                                  Text('Time: ${appointment['time']}'),
+                                  Text('Location: ${appointment['location']}'),
+                                ],
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text('Date: ${appointment['date']}'),
-                            Text('Time: ${appointment['time']}'),
-                            Text('Location: ${appointment['location']}'),
-                          ],
+                              // Action buttons
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.edit),
+                                    onPressed: () {
+                                      showEditAppointmentDialog(
+                                        context: context,
+                                        appointment: appointment,
+                                        onUpdated: () {
+                                          setState(() {
+                                            _refreshAppointments();
+                                          });
+                                        },
+                                      );
+                                    },
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete),
+                                    onPressed: () {
+                                      _deleteAppointment(appointment['id']);
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                        // Action buttons
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit),
-                              onPressed: () {
-                                showEditAppointmentDialog(
-                                  context: context,
-                                  appointment: appointment,
-                                  onUpdated: () {
-                                    setState(() {
-                                      _refreshAppointments();
-                                    });
-                                  },
-                                );
-                              },
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete),
-                              onPressed: () {
-                                _deleteAppointment(appointment['id']);
-                              },
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                );
+                      );
+                    },
+                  );
+                }
               },
-            );
-          }
-        },
+            ),
+          ),
+        ],
       ),
     );
   }
