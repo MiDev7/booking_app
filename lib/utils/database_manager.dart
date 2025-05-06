@@ -38,7 +38,7 @@ class StorageManager {
 
   static Future<void> moveDatabaseFile(String oldPath, String newPath) async {
     final oldFile = File(oldPath);
-    final newFile = File(newPath);
+    // final newFile = File(newPath);
     if (await oldFile.exists()) {
       await oldFile.rename(newPath);
     }

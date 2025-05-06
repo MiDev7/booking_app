@@ -1,8 +1,6 @@
 import 'package:booking_app/screens/home_screen.dart';
 import 'package:booking_app/providers/date_provider.dart';
 import 'package:booking_app/providers/storage_provider.dart';
-import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:booking_app/utils/database_helper.dart';
@@ -11,9 +9,6 @@ import 'package:booking_app/screens/search_screen.dart';
 import 'package:booking_app/screens/appointment_day_screen.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:window_manager/window_manager.dart';
-import 'dart:io';
-
-
 
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
@@ -24,10 +19,8 @@ Future<void> main() async {
   DatabaseHelper().database;
   // Fullscreen view
   await windowManager.ensureInitialized();
-  WindowOptions windowsOptions = const WindowOptions(
-    fullScreen: false,
-    title: 'Booking App'
-  );
+  WindowOptions windowsOptions =
+      const WindowOptions(fullScreen: false, title: 'Booking App');
   windowManager.waitUntilReadyToShow(windowsOptions, () async {
     await windowManager.maximize();
     await windowManager.show();
