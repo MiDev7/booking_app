@@ -26,7 +26,7 @@ class DatabaseHelper {
   // Initialize the database
   Future<Database> _initDatabase() async {
     final directory = await getApplicationDocumentsDirectory();
-    _dbPath = join( directory.path, 'appointments.db');
+    _dbPath = join(directory.path, 'appointments.db');
     return await openDatabase(
       _dbPath!,
       version: 1,
@@ -58,7 +58,6 @@ class DatabaseHelper {
 
   // Upgrade the appointments table
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-
     if (oldVersion < 3 && oldVersion != 1) {
       await db.execute('DROP TABLE IF EXISTS appointments');
       await _onCreate(db, newVersion);
@@ -109,8 +108,7 @@ class DatabaseHelper {
   }
 
   Future<bool> isAppointmentBooked(
-      String date, String time, String location) async
-  {
+      String date, String time, String location) async {
     final parts = time.split(':');
     final hour = int.parse(parts[0]);
     final minute = int.parse(parts[1]);
@@ -131,8 +129,7 @@ class DatabaseHelper {
   }
 
   Future<bool> updateAppointmentDateTimeLocation(
-      String id, String date, String time, String location) async
-  {
+      String id, String date, String time, String location) async {
     print("$id $date $time $location");
 
     Database db = await database;
@@ -158,8 +155,7 @@ class DatabaseHelper {
   }
 
   Future<int> isAppointmentBookedCount(
-      String date, String timeSlot, String location) async
-  {
+      String date, String timeSlot, String location) async {
     // Example: For a timeSlot "16:00", count appointments between 16:00 and 16:30.
     final parts = timeSlot.split(':');
     final hour = int.parse(parts[0]);
@@ -171,6 +167,14 @@ class DatabaseHelper {
         "${startDateTime.hour.toString().padLeft(2, '0')}:${startDateTime.minute.toString().padLeft(2, '0')}";
     final String endTime =
         "${endDateTime.hour.toString().padLeft(2, '0')}:${endDateTime.minute.toString().padLeft(2, '0')}";
+
+    // Check if query is saturday
+    final DateTime dateTime = DateTime.parse(date);
+    if (dateTime.weekday == DateTime.saturday) {
+      // If it's Saturday, check for appointments on the next day (Sunday)
+      print("This startTime $startTime");
+      print("This endTime $endTime");
+    }
 
     Database db = await database;
     final List<Map<String, dynamic>> result = await db.rawQuery(
@@ -192,9 +196,8 @@ class DatabaseHelper {
 
   Future<void> closeDatabase() async {
     if (_database != null) {
-     await _database!.close();
-         _database = null;
-
+      await _database!.close();
+      _database = null;
     }
   }
 
@@ -240,8 +243,7 @@ class DatabaseHelper {
     if (await File(oldPath).exists()) {
       await File(oldPath).copy(newDbPath);
       await File(oldPath).delete();
-    }
-    else {
+    } else {
       await File(newDbPath).create(recursive: true);
     }
 

@@ -19,12 +19,18 @@ class EditAppointmentScreen extends StatefulWidget {
 
 class _EditAppointmentScreenState extends State<EditAppointmentScreen> {
   late Future<List<Map<String, dynamic>>> _appointmentsFuture;
-
+  late String formattedTime;
   void _fetchAppointments() {
+    // format time if 9:30 put to 09:30
+
+    if (widget.time.length == 4) {
+      formattedTime = '0${widget.time}';
+    }
+
     _appointmentsFuture =
         DatabaseHelper().getAppointmentsByDateAndTimeAndLocation(
       widget.date,
-      widget.time,
+      formattedTime,
       widget.location,
     );
   }
@@ -40,11 +46,10 @@ class _EditAppointmentScreenState extends State<EditAppointmentScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-            'Edit Appointment ${widget.date} ${widget.time} ${widget.location.toLowerCase()}',
-            style: TextStyle(
+          'Edit Appointment ${widget.date} ${widget.time} ${widget.location.toLowerCase()}',
+          style: TextStyle(
               fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.primary
-            ),
+              color: Theme.of(context).colorScheme.primary),
         ),
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(

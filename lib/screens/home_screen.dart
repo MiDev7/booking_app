@@ -12,6 +12,7 @@ import 'package:booking_app/screens/pdf_preview_screen.dart';
 import 'package:pdf/pdf.dart';
 import 'package:booking_app/screens/edit_appointment_screen.dart';
 import '../widgets/settings_dialog.dart';
+import 'package:booking_app/widgets/booking_table.dart';
 
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
@@ -122,6 +123,14 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   //* Inserts an appointment using AppointmentModel.
   Future<void> _bookAppointment(
       String date, String time, String patientName) async {
+    // Check if time hour is less than 10
+    final timeParts = time.split(':');
+    final hour = int.parse(timeParts[0]);
+    final minute = timeParts[1];
+    if (hour < 10) {
+      time = '0$hour:$minute';
+    }
+
     final appointment = AppointmentModel(
       id: null,
       // id will be auto-assigned by the database.
@@ -158,12 +167,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   //* Navigate to Edit Appointment Screen
 
   //* Builds a booking cell that displays the booked count or a Book button.
-  Widget _buildBookingCell(DateTime day, String timeSlot) {
+  Widget _buildBookingCell(DateTime day, String timeSlot, String location) {
     final formattedDate = formatter.format(day);
     final future = DatabaseHelper().isAppointmentBookedCount(
       formattedDate,
       timeSlot,
-      Util.formatLocation(_selectedLocation),
+      location,
     );
     return FutureBuilder<int>(
       key: ValueKey('$_bookingRefresh-$formattedDate-$timeSlot'),
@@ -229,26 +238,24 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                           ),
                           TextButton(
                               onPressed: () {
-                                // Print in 20x20cm format.
+                                // Print in 30x20mm (WxH) format.
                                 Printing.layoutPdf(
                                   onLayout: (format) async {
-                                    final pdf =
-                                        await PdfAppointment.generatePdf(
-                                      day,
-                                      await DatabaseHelper()
-                                          .getAppointmentsByDateAndLocation(
-                                              formattedDate,
-                                              Util.formatLocation(
-                                                  _selectedLocation)),
-                                      location: Util.formatLocation(
-                                          _selectedLocation),
-                                    );
+                                    final pdf = await PdfAppointment
+                                        .generateSingleAppointment(
+                                            format,
+                                            day,
+                                            patientNameController.text,
+                                            timeSlot,
+                                            Util.formatLocation(
+                                                _selectedLocation));
                                     return pdf;
                                   },
                                   name: 'appointments.pdf',
                                   format: PdfPageFormat(
-                                    20 * PdfPageFormat.cm,
-                                    25 * PdfPageFormat.cm,
+                                    30 * PdfPageFormat.mm,
+                                    20 * PdfPageFormat.mm,
+                                    marginAll: 1.0 * PdfPageFormat.mm,
                                   ),
                                 );
                               },
@@ -416,9 +423,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               Text(
                 'Week ${dateProvider.currentWeekNumber} - ${dateProvider.currentFullDate}',
                 style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.primary
-                ),
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary),
                 textAlign: TextAlign.center,
               ),
               Row(
@@ -455,36 +461,36 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               ),
             ],
           ),
-            // actions: [
-            //   PopupMenuButton<String>(
-            //       icon: Icon(Icons.more_vert),
-            //       itemBuilder: (context) => [
-            //         PopupMenuItem(
-            //           value: 'settings',
-            //           child: Row(
-            //             children: [
-            //               Icon(Icons.settings, size: 20),
-            //               SizedBox(width: 10),
-            //               Text('Storage Settings')
-            //             ],
-            //           ),
-            //         ),
-            //       ],
-            //       onSelected: (value) {
-            //         if (value == 'settings') {
-            //           _showSettingsDialog(context);
-            //         }
-            //       },
-            //       )
-            //   ]
+          // actions: [
+          //   PopupMenuButton<String>(
+          //       icon: Icon(Icons.more_vert),
+          //       itemBuilder: (context) => [
+          //         PopupMenuItem(
+          //           value: 'settings',
+          //           child: Row(
+          //             children: [
+          //               Icon(Icons.settings, size: 20),
+          //               SizedBox(width: 10),
+          //               Text('Storage Settings')
+          //             ],
+          //           ),
+          //         ),
+          //       ],
+          //       onSelected: (value) {
+          //         if (value == 'settings') {
+          //           _showSettingsDialog(context);
+          //         }
+          //       },
+          //       )
+          //   ]
         ),
         body: Row(
           children: <Widget>[
             Expanded(flex: 1, child: Container()),
             Expanded(
-                flex: 15,
+                flex: 38,
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     SizedBox(
@@ -591,195 +597,15 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     // Display the location switch.
 
                     Expanded(
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.vertical,
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Table(
-                            border: TableBorder.all(
-                              color: Colors.white,
-                            ),
-                            // Increased column width from 120 to 200.
-                            defaultColumnWidth: const FixedColumnWidth(180),
-                            children: [
-                              // Table Header
-                              TableRow(
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                                children: [
-                                  Container(
-                                    height: 55,
-                                    decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.only(
-                                            topLeft: Radius.circular(8))),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: Text(
-                                        "WeekDay Time",
-                                        textAlign: TextAlign.center,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white),
-                                      ),
-                                    ),
-                                  ),
-                                  //* Table Column for WeekDays ( Tuesday to Friday )
-                                  for (var day in filteredDays)
-                                    Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: Text(
-                                            "${Util.dayName(day.weekday)} ${day.day}/${day.month}",
-                                            textAlign: TextAlign.center,
-                                            style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white),
-                                          ),
-                                        ),
-                                        IconButton(
-                                          icon: Icon(Icons.print,
-                                              color: Colors.white),
-                                          onPressed: () {
-                                            Navigator.of(context).pushNamed(
-                                                '/appointment-day',
-                                                arguments: {
-                                                  'location':
-                                                      Util.formatLocation(
-                                                          _selectedLocation),
-                                                  'date': formatter.format(day),
-                                                });
-                                          },
-                                        ),
-                                      ],
-                                    ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: Text(
-                                      "Morning Time",
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white),
-                                    ),
-                                  ),
-                                  //* Table Column for Saturday
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: Text(
-                                          "Saturday ${saturday.day}/${saturday.month}",
-                                          textAlign: TextAlign.center,
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.white),
-                                        ),
-                                      ),
-                                      IconButton(
-                                        icon: Icon(Icons.print,
-                                            color: Colors.white),
-                                        onPressed: () {
-                                          _openPdfPreview(saturday);
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                              // Table Rows
-                              ...List.generate(timeList.length, (index) {
-                                final afternoonTimeSlot = timeList[index];
-                                final morningTimeSlot = morningTimeList[index];
-                                return TableRow(
-                                  // (Intentionally left empty)
-                                  children: [
-                                    // First cell: afternoon time label.
-                                    // Change bg color for first columns
-                                    Container(
-                                      alignment: Alignment.center,
-                                      height: 55,
-                                      decoration: BoxDecoration(
-                                        borderRadius: index == 0
-                                            ? BorderRadius.only(
-                                                bottomLeft: Radius.circular(8),
-                                                bottomRight: Radius.circular(8))
-                                            : BorderRadius.circular(8),
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary
-                                            .withAlpha(50),
-                                      ),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: Text(
-                                          afternoonTimeSlot,
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .primary),
-                                        ),
-                                      ),
-                                    ),
-
-                                    // For each filtered day (Tuesday to Friday) show the afternoon booking cell.
-                                    for (var day in filteredDays)
-                                      Padding(
-                                        padding: const EdgeInsets.all(4.0),
-                                        child: _buildBookingCell(
-                                            day, afternoonTimeSlot),
-                                      ),
-                                    // Extra cell for Monday morning (using morningTimeSlot)
-                                    Container(
-                                      alignment: Alignment.center,
-                                      height: 55,
-                                      decoration: BoxDecoration(
-                                        borderRadius: index == 0
-                                            ? BorderRadius.only(
-                                                bottomLeft: Radius.circular(8),
-                                                bottomRight: Radius.circular(8))
-                                            : BorderRadius.circular(8),
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary
-                                            .withAlpha(50),
-                                      ),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: Text(
-                                          morningTimeSlot,
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .primary),
-                                        ),
-                                      ),
-                                    ),
-                                    // Extra cell for Saturday (using afternoonTimeSlot)
-                                    Padding(
-                                      padding: const EdgeInsets.all(4.0),
-                                      child: _buildBookingCell(
-                                          saturday, morningTimeSlot),
-                                    ),
-                                  ],
-                                );
-                              }),
-                            ],
-                          ),
-                        ),
+                      child: BookingTable(
+                        timeList: timeList,
+                        morningTimeList: morningTimeList,
+                        filteredDays: filteredDays,
+                        saturday: saturday,
+                        location: Util.formatLocation(_selectedLocation),
+                        buildBookingCell: _buildBookingCell,
                       ),
-                    )
+                    ),
                   ],
                 )),
             Expanded(flex: 1, child: Container()),

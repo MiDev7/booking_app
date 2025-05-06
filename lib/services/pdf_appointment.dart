@@ -1,7 +1,9 @@
 import 'dart:typed_data';
+import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:booking_app/utils/utils.dart';
+import 'package:intl/intl.dart';
 
 class PdfAppointment {
   static Future<Uint8List> generatePdf(
@@ -14,6 +16,53 @@ class PdfAppointment {
               SizedBox(height: 20),
               _buildAppointment(appointments),
             ]));
+
+    final output = await pdf.save();
+
+    return output;
+  }
+
+  static Future<Uint8List> generateSingleAppointment(PdfPageFormat format,
+      DateTime date, String name, String timeSlot, String location) async {
+    final pdf = Document();
+    final DateFormat formatter = DateFormat('dd-MM-yy');
+
+    final formattedDate = formatter.format(date);
+
+    String formatLocation = "";
+    if (location == "Port-Louis") {
+      formatLocation = "P-Louis";
+    } else {
+      formatLocation = "Q-Bornnes";
+    }
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: format,
+        orientation: PageOrientation.portrait,
+        build: (context) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text(
+              name.toUpperCase(),
+              style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold),
+            ),
+            pw.Text(
+              'DATE: ${formattedDate.toUpperCase()}',
+              style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold),
+            ),
+            pw.Text(
+              'TIME: ${timeSlot.toUpperCase()}',
+              style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold),
+            ),
+            pw.Text(
+              'L: ${formatLocation.toUpperCase()}',
+              style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
+    );
 
     final output = await pdf.save();
 
