@@ -8,11 +8,11 @@ import '../utils/database_helper.dart';
 import '../models/appointment_model.dart';
 import 'package:booking_app/utils/utils.dart';
 import 'package:booking_app/services/pdf_appointment.dart';
-import 'package:booking_app/screens/pdf_preview_screen.dart';
 import 'package:pdf/pdf.dart';
 import 'package:booking_app/screens/edit_appointment_screen.dart';
 import '../widgets/settings_dialog.dart';
 import 'package:booking_app/widgets/booking_table.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
@@ -31,7 +31,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   // Default appointment location.
   Location _selectedLocation = Location.quatreBornes;
   bool _isLocationEditable = false;
-  final String _password = 'admin123';
+
+  late String _storedPassword;
 
   Future<void> _loadWeekPreference() async {
     final saved = await DatabaseHelper().getWeekPreference(_weekKey);
@@ -39,6 +40,63 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       _selectedLocation =
           saved != null ? Util.parseLocation(saved) : Location.quatreBornes;
     });
+  }
+
+  Future<void> _checkAndPromptPassword() async {
+    final prefs = await SharedPreferences.getInstance();
+    final storedPassword = prefs.getString('userPassword');
+    if (storedPassword == null) {
+      // Delay to ensure context is ready.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showSetPasswordDialog();
+      });
+    }
+  }
+
+  Future<void> _loadStoredPassword() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _storedPassword = prefs.getString('userPassword') ?? 'defaultPass';
+    });
+  }
+
+  void _showSetPasswordDialog() {
+    final TextEditingController passwordController = TextEditingController();
+    showDialog(
+      context: context,
+      barrierDismissible: false, // force the user to enter a password
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Set Your Password"),
+          content: TextField(
+            controller: passwordController,
+            obscureText: true,
+            decoration: const InputDecoration(
+              labelText: "Enter password",
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                if (passwordController.text.trim().isNotEmpty) {
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setString(
+                      'userPassword', passwordController.text.trim());
+                  Navigator.of(context).pop();
+                } else {
+                  // Optionally show an error message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text("Please enter a valid password")),
+                  );
+                }
+              },
+              child: const Text("Confirm"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   TextEditingController patientNameController = TextEditingController();
@@ -77,6 +135,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       _weekKey = formatter.format(monday);
       _loadWeekPreference();
     });
+
+    _checkAndPromptPassword();
+    _loadStoredPassword();
   }
 
   @override
@@ -503,7 +564,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                   TextButton(
                                     onPressed: () {
                                       if (passwordController.text ==
-                                          _password) {
+                                          _storedPassword) {
                                         setState(() {
                                           _isLocationEditable = true;
                                         });
