@@ -130,7 +130,6 @@ class DatabaseHelper {
 
   Future<bool> updateAppointmentDateTimeLocation(
       String id, String date, String time, String location) async {
-    print("$id $date $time $location");
 
     Database db = await database;
     try {
@@ -145,9 +144,7 @@ class DatabaseHelper {
         whereArgs: [id],
       );
 
-      print('Updated $result appointment(s) with ID: $id');
     } catch (e) {
-      print('Error updating appointment: $e');
       return false;
     }
 
@@ -172,8 +169,6 @@ class DatabaseHelper {
     final DateTime dateTime = DateTime.parse(date);
     if (dateTime.weekday == DateTime.saturday) {
       // If it's Saturday, check for appointments on the next day (Sunday)
-      print("This startTime $startTime");
-      print("This endTime $endTime");
     }
 
     Database db = await database;
@@ -237,9 +232,7 @@ class DatabaseHelper {
     await closeDatabase();
 
     final oldPath = await StorageManager.getDatabasePath();
-    print(oldPath);
     final newDbPath = join(newPath, 'appointments.db');
-    print(newDbPath);
     if (await File(oldPath).exists()) {
       await File(oldPath).copy(newDbPath);
       await File(oldPath).delete();

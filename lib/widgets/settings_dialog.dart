@@ -60,8 +60,6 @@ class _SettingsDialogState extends State<SettingsDialog> {
                     _currentPath = StorageManager.getDatabasePath();
                   });
                 }
-
-                print(newPath);
               },
             ),
             SizedBox(height: 20),

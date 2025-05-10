@@ -4,15 +4,18 @@ import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 import '../providers/date_provider.dart';
+import '../providers/location_provider.dart';
 import '../utils/database_helper.dart';
 import '../models/appointment_model.dart';
 import 'package:booking_app/utils/utils.dart';
 import 'package:booking_app/services/pdf_appointment.dart';
 import 'package:pdf/pdf.dart';
 import 'package:booking_app/screens/edit_appointment_screen.dart';
-import '../widgets/settings_dialog.dart';
+import 'package:booking_app/widgets/settings_dialog.dart';
+import 'package:booking_app/widgets/display_settings_dialog.dart';
 import 'package:booking_app/widgets/booking_table.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:booking_app/providers/theme_provider.dart';
 
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
@@ -29,19 +32,25 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   final DateFormat formatter = DateFormat('yyyy-MM-dd');
 
   // Default appointment location.
-  Location _selectedLocation = Location.quatreBornes;
   bool _isLocationEditable = false;
+
+  TextEditingController patientNameController = TextEditingController();
+  int _bookingRefresh = 0;
+  late String _weekKey;
 
   late String _storedPassword;
 
+  // * Load the week preference from the database.
   Future<void> _loadWeekPreference() async {
-    final saved = await DatabaseHelper().getWeekPreference(_weekKey);
-    setState(() {
-      _selectedLocation =
-          saved != null ? Util.parseLocation(saved) : Location.quatreBornes;
-    });
+    await Provider.of<LocationProvider>(context, listen: false)
+        .loadLocation(_weekKey);
+    // Update the theme color based on the provider’s location.
+    _updateColorTheme(
+      Provider.of<LocationProvider>(context, listen: false).selectedLocation,
+    );
   }
 
+  // * Check if the password is set and prompt the user to set it if not.
   Future<void> _checkAndPromptPassword() async {
     final prefs = await SharedPreferences.getInstance();
     final storedPassword = prefs.getString('userPassword');
@@ -53,6 +62,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     }
   }
 
+  // * Load the stored password from SharedPreferences.
   Future<void> _loadStoredPassword() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -60,6 +70,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     });
   }
 
+  // * Show a dialog to set the password.
   void _showSetPasswordDialog() {
     final TextEditingController passwordController = TextEditingController();
     showDialog(
@@ -101,9 +112,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     );
   }
 
-  TextEditingController patientNameController = TextEditingController();
-  int _bookingRefresh = 0;
-  late String _weekKey;
+  // * Update color theme based on the selected location.
+  void _updateColorTheme(Location location) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    themeProvider.updateColorBasedOnLocation(Util.formatLocation(location));
+  }
 
   List<String> timeGenerator() {
     List<String> times = [];
@@ -161,19 +174,20 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     });
   }
 
-  Future<void> _updateWeekPreference(Location newLocation) async {
-    await DatabaseHelper()
-        .setWeekPreference(_weekKey, Util.formatLocation(newLocation));
-    setState(() {
-      _selectedLocation = newLocation;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content: Text(
-              'Preferred location updated: ${Util.formatLocation(newLocation)}')),
-    );
-  }
+  // * Updates the preferred location in the database and shows a snackbar.
+  // Future<void> _updateWeekPreference(Location newLocation) async {
+  //   await Provider.of<LocationProvider>(context, listen: false)
+  //       .updateLocation(_weekKey, newLocation);
+  //   _updateColorTheme(newLocation);
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     SnackBar(
+  //       content: Text(
+  //           'Preferred location updated: ${Util.formatLocation(newLocation)}'),
+  //     ),
+  //   );
+  // }
 
+  // * Updates the week key and loads the preference.
   void _updateWeekKeyAndLoadPreference() {
     final dateProvider = Provider.of<DateProvider>(context, listen: false);
     // Get Monday's date from the new working days.
@@ -197,16 +211,16 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     }
 
     final appointment = AppointmentModel(
-      id: null,
-      // id will be auto-assigned by the database.
-      patientFirstName: patientName.split(' ')[0],
-      patientLastName: patientName.split(' ').length > 1
-          ? patientName.split(' ').sublist(1).join(' ')
-          : '',
-      date: DateTime.parse(date),
-      time: time,
-      location: _selectedLocation,
-    );
+        id: null,
+        // id will be auto-assigned by the database.
+        patientFirstName: patientName.split(' ')[0],
+        patientLastName: patientName.split(' ').length > 1
+            ? patientName.split(' ').sublist(1).join(' ')
+            : '',
+        date: DateTime.parse(date),
+        time: time,
+        location: Provider.of<LocationProvider>(context, listen: false)
+            .selectedLocation);
     await DatabaseHelper().insertAppointment(appointment);
     setState(() {
       _bookingRefresh++;
@@ -297,7 +311,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                             patientNameController.text,
                                             timeSlot,
                                             Util.formatLocation(
-                                                _selectedLocation));
+                                                Provider.of<LocationProvider>(
+                                                        context)
+                                                    .selectedLocation));
                                     return pdf;
                                   },
                                   name: 'appointments.pdf',
@@ -341,8 +357,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                               builder: (context) => EditAppointmentScreen(
                                   date: formattedDate,
                                   time: timeSlot,
-                                  location:
-                                      Util.formatLocation(_selectedLocation))));
+                                  location: Util.formatLocation(
+                                      Provider.of<LocationProvider>(context)
+                                          .selectedLocation))));
                         },
                         icon: Icon(Icons.remove_red_eye, color: Colors.white))
                   ],
@@ -352,8 +369,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           }
           return SizedBox(
             height: 50,
-            child: ElevatedButton(
-              onPressed: () {
+            child: GestureDetector(
+              onTap: () {
                 showDialog(
                   context: context,
                   builder: (BuildContext context) {
@@ -372,7 +389,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                             decoration: const InputDecoration(
                               labelText: 'Patient Name',
                             ),
-                            autofocus: true,
                           ),
                         ],
                       ),
@@ -396,44 +412,25 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                           },
                           child: const Text('Book'),
                         ),
-                        TextButton(
-                            onPressed: () {
-                              // Print in 20x20cm format.
-                              Printing.layoutPdf(
-                                onLayout: (format) async {
-                                  final pdf = await PdfAppointment.generatePdf(
-                                    day,
-                                    await DatabaseHelper()
-                                        .getAppointmentsByDateAndLocation(
-                                            formattedDate,
-                                            Util.formatLocation(
-                                                _selectedLocation)),
-                                    location:
-                                        Util.formatLocation(_selectedLocation),
-                                  );
-                                  return pdf;
-                                },
-                                name: 'appointments.pdf',
-                                format: PdfPageFormat(
-                                  20 * PdfPageFormat.cm,
-                                  20 * PdfPageFormat.cm,
-                                ),
-                              );
-                            },
-                            child: const Text("Print"))
                       ],
                     );
                   },
                 );
               },
-              style: ButtonStyle(
-                shape: WidgetStatePropertyAll(
-                  RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8.0),
+              child: Container(
+                height: 50,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                child: Center(
+                  child: Text(
+                    "Book",
+                    style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
-              child: const Text("Book"),
             ),
           );
         }
@@ -441,11 +438,21 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     );
   }
 
+  //* Show  storage settings dialog
   void _showSettingsDialog(BuildContext context) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => SettingsDialog(),
+    );
+  }
+
+  //* Show display settings dialog
+  void _showDisplaySettingsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const DisplaySettingsDialog(),
     );
   }
 
@@ -477,152 +484,192 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(width: 20),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      "Location: ",
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary),
-                    ),
-                    _isLocationEditable
-                        ? Container(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 8.0),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.surface,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            ),
-                            child: DropdownButton<Location>(
-                              value: _selectedLocation,
-                              underline: Container(
-                                height: 40,
-                              ),
-                              icon: Icon(
-                                Icons.arrow_drop_down,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                              onChanged: (Location? newValue) {
-                                if (newValue != null) {
-                                  setState(() {
-                                    _selectedLocation = newValue;
-                                  });
-                                }
-                              },
-                              items: [
-                                DropdownMenuItem(
-                                  value: Location.portLouis,
-                                  child: Text("Port-Louis"),
-                                ),
-                                DropdownMenuItem(
-                                  value: Location.quatreBornes,
-                                  child: Text("Quatre-Bornes"),
-                                ),
-                              ],
-                            ),
-                          )
-                        : Text(
-                            Util.formatLocation(_selectedLocation),
-                            style: TextStyle(
-                                color: Theme.of(context).colorScheme.primary),
-                          ),
-                    IconButton(
-                      icon: Icon(
-                        _isLocationEditable
-                            ? Icons.lock_open_rounded
-                            : Icons.lock_rounded,
-                        color: Theme.of(context).colorScheme.primary,
+                Consumer<LocationProvider>(
+                    builder: (context, locationProvider, child) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Location: ",
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.primary),
                       ),
-                      onPressed: () {
-                        // If not editable, prompt for password
-                        if (!_isLocationEditable) {
-                          showDialog(
-                            context: context,
-                            builder: (context) {
-                              final TextEditingController passwordController =
-                                  TextEditingController();
-                              return AlertDialog(
-                                title: Text("Enter Password"),
-                                content: TextField(
-                                  controller: passwordController,
-                                  obscureText: true,
-                                  decoration: InputDecoration(
-                                    labelText: "Password",
-                                  ),
+                      _isLocationEditable
+                          ? Container(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 8.0),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.surface,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: Theme.of(context).colorScheme.primary,
                                 ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.of(context).pop(),
-                                    child: Text("Cancel"),
+                              ),
+                              child: DropdownButton<Location>(
+                                value: locationProvider.selectedLocation,
+                                underline: Container(
+                                  height: 40,
+                                ),
+                                icon: Icon(
+                                  Icons.arrow_drop_down,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                                onChanged: (Location? newValue) {
+                                  if (newValue != null) {
+                                    setState(() {
+                                      locationProvider.setLocation(newValue);
+                                    });
+                                  }
+                                },
+                                items: [
+                                  DropdownMenuItem(
+                                    value: Location.portLouis,
+                                    child: Text("Port-Louis"),
                                   ),
-                                  TextButton(
-                                    onPressed: () {
-                                      if (passwordController.text ==
-                                          _storedPassword) {
-                                        setState(() {
-                                          _isLocationEditable = true;
-                                        });
-                                        Navigator.of(context).pop();
-                                      } else {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(SnackBar(
-                                          content: Text("Invalid password."),
-                                        ));
-                                      }
-                                    },
-                                    child: Text("Submit"),
+                                  DropdownMenuItem(
+                                    value: Location.quatreBornes,
+                                    child: Text("Quatre-Bornes"),
                                   ),
                                 ],
-                              );
-                            },
-                          );
-                        }
-                      },
-                    ),
-                    _isLocationEditable
-                        ? IconButton(
-                            icon: Icon(
-                              Icons.check_box_rounded,
-                              color: Theme.of(context).colorScheme.primary,
+                              ),
+                            )
+                          : Text(
+                              Util.formatLocation(
+                                  locationProvider.selectedLocation),
+                              style: TextStyle(
+                                  color: Theme.of(context).colorScheme.primary),
                             ),
-                            onPressed: () {
-                              _updateWeekPreference(_selectedLocation);
-                              setState(() {
-                                _isLocationEditable = false;
-                              });
-                            },
-                          )
-                        : Container(),
-                  ],
-                ),
+                      IconButton(
+                        icon: Icon(
+                          _isLocationEditable
+                              ? Icons.lock_open_rounded
+                              : Icons.lock_rounded,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        onPressed: () {
+                          // If not editable, prompt for password
+                          if (!_isLocationEditable) {
+                            showDialog(
+                              context: context,
+                              builder: (context) {
+                                final TextEditingController passwordController =
+                                    TextEditingController();
+                                return AlertDialog(
+                                  title: Text("Enter Password"),
+                                  content: TextField(
+                                    controller: passwordController,
+                                    obscureText: true,
+                                    decoration: InputDecoration(
+                                      labelText: "Password",
+                                    ),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(context).pop(),
+                                      child: Text("Cancel"),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        if (passwordController.text ==
+                                            _storedPassword) {
+                                          setState(() {
+                                            _isLocationEditable = true;
+                                          });
+                                          Navigator.of(context).pop();
+                                        } else {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(SnackBar(
+                                            content: Text("Invalid password."),
+                                          ));
+                                        }
+                                      },
+                                      child: Text("Submit"),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          }
+                        },
+                      ),
+                      _isLocationEditable
+                          ? IconButton(
+                              icon: Icon(
+                                Icons.check_box_rounded,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              onPressed: () {
+                                Provider.of<LocationProvider>(context,
+                                        listen: false)
+                                    .updateLocation(
+                                        _weekKey,
+                                        Provider.of<LocationProvider>(context,
+                                                listen: false)
+                                            .selectedLocation);
+                                setState(() {
+                                  _isLocationEditable = false;
+                                });
+                                _updateColorTheme(
+                                  Provider.of<LocationProvider>(context,
+                                          listen: false)
+                                      .selectedLocation,
+                                );
+                              },
+                            )
+                          : Container(),
+                    ],
+                  );
+                }),
               ],
             ),
             actions: [
               PopupMenuButton<String>(
-                icon: Icon(Icons.more_vert),
+                icon: Icon(Icons.settings),
                 itemBuilder: (context) => [
                   PopupMenuItem(
-                    value: 'settings',
+                    value: 'storage settings',
                     child: Row(
                       children: [
-                        Icon(Icons.settings, size: 20),
+                        Icon(Icons.storage, size: 20),
                         SizedBox(width: 10),
-                        Text('Storage Settings')
+                        Text('Settings')
                       ],
                     ),
                   ),
+                  PopupMenuItem(
+                    value: 'display settings',
+                    child: Row(
+                      children: [
+                        Icon(Icons.color_lens, size: 20),
+                        SizedBox(width: 10),
+                        Text('Display Settings')
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'printing settings',
+                    child: Row(
+                      children: [
+                        Icon(Icons.print, size: 20),
+                        SizedBox(width: 10),
+                        Text('Printing Settings')
+                      ],
+                    ),
+                  )
                 ],
                 onSelected: (value) {
-                  if (value == 'settings') {
+                  if (value == 'storage settings') {
                     _showSettingsDialog(context);
+                  } else if (value == 'display settings') {
+                    _showDisplaySettingsDialog(context);
+                    //TODO: Implement display settings
+                  } else if (value == 'printing settings') {
+                    //TODO: Implement printing settings
                   }
                 },
               )
@@ -745,7 +792,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                         morningTimeList: morningTimeList,
                         filteredDays: filteredDays,
                         saturday: saturday,
-                        location: Util.formatLocation(_selectedLocation),
+                        location: Util.formatLocation(
+                            Provider.of<LocationProvider>(context)
+                                .selectedLocation),
                         buildBookingCell: _buildBookingCell,
                       ),
                     ),

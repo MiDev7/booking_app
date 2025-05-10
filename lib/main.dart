@@ -1,8 +1,5 @@
-import 'package:booking_app/providers/theme_provider.dart';
 import 'package:booking_app/screens/home_screen.dart';
-import 'package:booking_app/providers/date_provider.dart';
-import 'package:booking_app/providers/storage_provider.dart';
-import 'package:provider/provider.dart';
+
 import 'package:flutter/material.dart';
 import 'package:booking_app/utils/database_helper.dart';
 import 'package:booking_app/screens/edit_appointment_screen.dart';
@@ -10,6 +7,13 @@ import 'package:booking_app/screens/search_screen.dart';
 import 'package:booking_app/screens/appointment_day_screen.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:window_manager/window_manager.dart';
+
+// Providers
+import 'package:provider/provider.dart';
+import 'package:booking_app/providers/location_provider.dart';
+import 'package:booking_app/providers/theme_provider.dart';
+import 'package:booking_app/providers/date_provider.dart';
+import 'package:booking_app/providers/storage_provider.dart';
 
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
@@ -32,6 +36,7 @@ Future<void> main() async {
       ChangeNotifierProvider(create: (context) => DateProvider()),
       ChangeNotifierProvider(create: (context) => StorageNotifier()),
       ChangeNotifierProvider(create: (_) => ThemeProvider()),
+      ChangeNotifierProvider(create: (_) => LocationProvider()),
     ],
     child: const MyApp(),
   ));
