@@ -1,0 +1,99 @@
+import 'package:booking_app/providers/print_provider.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:pdf/pdf.dart';
+
+class PrintSettingsDialog extends StatefulWidget {
+  const PrintSettingsDialog({super.key});
+
+  @override
+  State<PrintSettingsDialog> createState() => _PrintSettingsDialogState();
+}
+
+class _PrintSettingsDialogState extends State<PrintSettingsDialog> {
+  final TextEditingController heightController = TextEditingController();
+  final TextEditingController widthController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize the controllers with default values if needed
+    heightController.text = '25'; // Default height
+    widthController.text = '50'; // Default width
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Row(
+        children: [
+          Icon(Icons.storage, color: Theme.of(context).colorScheme.primary),
+          SizedBox(width: 10),
+          Text('Printing Configuration')
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Height Input
+            TextField(
+              decoration: InputDecoration(
+                labelText: 'Height',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.number,
+              controller: heightController,
+            ),
+            SizedBox(height: 25),
+
+            // Width Input
+            TextField(
+              decoration: InputDecoration(
+                labelText: 'Width',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.number,
+              controller: widthController,
+            ),
+            SizedBox(height: 25),
+
+            // Dropdown unit displaying the current unit
+            Consumer<PrintProvider>(
+              builder: (context, printProvider, child) {
+                return DropdownButton<String>(
+                  value: printProvider.unit == PdfPageFormat.mm ? 'mm' : 'cm',
+                  items: <String>['cm', 'mm'].map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    printProvider.setUnit(newValue!);
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          child: Text('Close'),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        TextButton(
+          child: Text('Save'),
+          onPressed: () {
+            Provider.of<PrintProvider>(context, listen: false)
+                .setWidthPrintingLabel(double.parse(widthController.text));
+            Provider.of<PrintProvider>(context, listen: false)
+                .setHeightPrintingLabel(double.parse(heightController.text));
+            Navigator.of(context).pop();
+          },
+        ),
+      ],
+    );
+  }
+}

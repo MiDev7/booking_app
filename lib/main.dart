@@ -1,3 +1,4 @@
+import 'package:booking_app/providers/print_provider.dart';
 import 'package:booking_app/screens/home_screen.dart';
 
 import 'package:flutter/material.dart';
@@ -37,6 +38,7 @@ Future<void> main() async {
       ChangeNotifierProvider(create: (context) => StorageNotifier()),
       ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ChangeNotifierProvider(create: (_) => LocationProvider()),
+      ChangeNotifierProvider(create: (_) => PrintProvider())
     ],
     child: const MyApp(),
   ));

@@ -25,16 +25,21 @@ class PdfAppointment {
   static Future<Uint8List> generateSingleAppointment(PdfPageFormat format,
       DateTime date, String name, String timeSlot, String location) async {
     final pdf = Document();
-    final DateFormat formatter = DateFormat('dd-MM-yy');
+    final DateFormat formatter = DateFormat('dd/MM/yy');
 
     final formattedDate = formatter.format(date);
 
     String formatLocation = "";
     if (location == "Port-Louis") {
-      formatLocation = "P-Louis";
+      formatLocation = "Port-Louis";
     } else {
-      formatLocation = "Q-Bornnes";
+      formatLocation = "Quatre-Bornes";
     }
+
+    // Format timeslot
+    String time = timeSlot.split(":")[0];
+    String minutes = timeSlot.split(":")[1];
+    String formattedTimeSlot = "${time}HRS$minutes";
 
     pdf.addPage(
       pw.Page(
@@ -42,22 +47,19 @@ class PdfAppointment {
         orientation: PageOrientation.portrait,
         build: (context) => pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
+          mainAxisAlignment: pw.MainAxisAlignment.start,
           children: [
             pw.Text(
               name.toUpperCase(),
-              style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
             ),
             pw.Text(
-              'DATE: ${formattedDate.toUpperCase()}',
-              style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold),
+              '${formattedDate.toUpperCase()} at ${formattedTimeSlot.toUpperCase()}',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
             ),
             pw.Text(
-              'TIME: ${timeSlot.toUpperCase()}',
-              style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold),
-            ),
-            pw.Text(
-              'L: ${formatLocation.toUpperCase()}',
-              style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold),
+              formatLocation.toUpperCase(),
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -71,12 +73,13 @@ class PdfAppointment {
 
   static Widget _buildHeader(DateTime date, {String? location}) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.start,
       children: [
         Text(
             'Appointment ${Util.dayName(date.weekday)} ${date.day}/${date.month}/${date.year}',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
         Container(
-          margin: EdgeInsets.only(left: 0),
           child: Text(
             'Location: $location',
             style: TextStyle(fontSize: 18),

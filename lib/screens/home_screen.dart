@@ -1,3 +1,4 @@
+import 'package:booking_app/providers/print_provider.dart';
 import 'package:booking_app/providers/storage_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -11,8 +12,11 @@ import 'package:booking_app/utils/utils.dart';
 import 'package:booking_app/services/pdf_appointment.dart';
 import 'package:pdf/pdf.dart';
 import 'package:booking_app/screens/edit_appointment_screen.dart';
+
+import 'package:booking_app/widgets/print_settings_dialog.dart';
 import 'package:booking_app/widgets/settings_dialog.dart';
 import 'package:booking_app/widgets/display_settings_dialog.dart';
+
 import 'package:booking_app/widgets/booking_table.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:booking_app/providers/theme_provider.dart';
@@ -299,32 +303,37 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                             },
                             child: const Text('Book'),
                           ),
-                          TextButton(
-                              onPressed: () {
-                                // Print in 30x20mm (WxH) format.
-                                Printing.layoutPdf(
-                                  onLayout: (format) async {
-                                    final pdf = await PdfAppointment
-                                        .generateSingleAppointment(
-                                            format,
-                                            day,
-                                            patientNameController.text,
-                                            timeSlot,
-                                            Util.formatLocation(
-                                                Provider.of<LocationProvider>(
-                                                        context)
-                                                    .selectedLocation));
-                                    return pdf;
-                                  },
-                                  name: 'appointments.pdf',
-                                  format: PdfPageFormat(
-                                    30 * PdfPageFormat.mm,
-                                    20 * PdfPageFormat.mm,
-                                    marginAll: 1.0 * PdfPageFormat.mm,
-                                  ),
-                                );
-                              },
-                              child: const Text("Print"))
+                          Consumer<PrintProvider>(
+                              builder: (context, printProvider, child) {
+                            return TextButton(
+                                onPressed: () {
+                                  // Print in 30x20mm (WxH) format.
+                                  Printing.layoutPdf(
+                                    onLayout: (format) async {
+                                      final pdf = await PdfAppointment
+                                          .generateSingleAppointment(
+                                              format,
+                                              day,
+                                              patientNameController.text,
+                                              timeSlot,
+                                              Util.formatLocation(
+                                                  Provider.of<LocationProvider>(
+                                                          context)
+                                                      .selectedLocation));
+                                      return pdf;
+                                    },
+                                    name: 'appointments.pdf',
+                                    format: PdfPageFormat(
+                                      printProvider.widthPrintingLabel *
+                                          printProvider.unit,
+                                      printProvider.heightPrintingLabel *
+                                          printProvider.unit,
+                                      marginAll: 1.0 * printProvider.unit,
+                                    ),
+                                  );
+                                },
+                                child: const Text("Print"));
+                          })
                         ],
                       );
                     },
@@ -453,6 +462,14 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       context: context,
       barrierDismissible: false,
       builder: (context) => const DisplaySettingsDialog(),
+    );
+  }
+
+  void _showPrintSettingsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const PrintSettingsDialog(),
     );
   }
 
@@ -667,9 +684,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     _showSettingsDialog(context);
                   } else if (value == 'display settings') {
                     _showDisplaySettingsDialog(context);
-                    //TODO: Implement display settings
                   } else if (value == 'printing settings') {
-                    //TODO: Implement printing settings
+                    _showPrintSettingsDialog(context);
                   }
                 },
               )
