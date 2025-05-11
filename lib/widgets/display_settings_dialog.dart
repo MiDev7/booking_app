@@ -18,7 +18,7 @@ class _DisplaySettingsDialogState extends State<DisplaySettingsDialog> {
     return AlertDialog(
       title: Row(
         children: [
-          Icon(Icons.color_lens),
+          Icon(Icons.color_lens, color: Theme.of(context).colorScheme.primary),
           SizedBox(width: 10),
           Text('Display Settings')
         ],

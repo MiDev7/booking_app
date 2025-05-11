@@ -27,9 +27,9 @@ class _PrintSettingsDialogState extends State<PrintSettingsDialog> {
     return AlertDialog(
       title: Row(
         children: [
-          Icon(Icons.storage, color: Theme.of(context).colorScheme.primary),
+          Icon(Icons.print, color: Theme.of(context).colorScheme.primary),
           SizedBox(width: 10),
-          Text('Printing Configuration')
+          Text('Printing Settings')
         ],
       ),
       content: SingleChildScrollView(

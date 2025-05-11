@@ -357,7 +357,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text("Patients: $bookedCount",
-                        style: const TextStyle(color: Colors.white)),
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 14)),
                     IconButton(
                         onPressed: () {
                           // Redirect to view appointment list screen
@@ -419,7 +422,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                             });
                             Navigator.of(context).pop();
                           },
-                          child: const Text('Book'),
+                          child: const Text(
+                            'Book',
+                          ),
                         ),
                       ],
                     );
@@ -436,7 +441,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     "Book",
                     style: TextStyle(
                         color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.bold),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14),
                   ),
                 ),
               ),
@@ -497,7 +503,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   'Week ${dateProvider.currentWeekNumber} - ${dateProvider.currentFullDate}',
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.primary),
+                      color: Theme.of(context).colorScheme.primary,
+                      fontSize: 27),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(width: 20),
@@ -510,7 +517,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                         "Location: ",
                         style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.primary),
+                            color: Theme.of(context).colorScheme.primary,
+                            fontSize: 27),
                       ),
                       _isLocationEditable
                           ? Container(
@@ -545,11 +553,13 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                 items: [
                                   DropdownMenuItem(
                                     value: Location.portLouis,
-                                    child: Text("Port-Louis"),
+                                    child: Text("Port-Louis",
+                                        style: TextStyle(fontSize: 16)),
                                   ),
                                   DropdownMenuItem(
                                     value: Location.quatreBornes,
-                                    child: Text("Quatre-Bornes"),
+                                    child: Text("Quatre-Bornes",
+                                        style: TextStyle(fontSize: 16)),
                                   ),
                                 ],
                               ),
@@ -558,7 +568,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                               Util.formatLocation(
                                   locationProvider.selectedLocation),
                               style: TextStyle(
-                                  color: Theme.of(context).colorScheme.primary),
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontSize: 27),
                             ),
                       IconButton(
                         icon: Icon(
@@ -646,13 +657,17 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             ),
             actions: [
               PopupMenuButton<String>(
-                icon: Icon(Icons.settings),
+                elevation: 3,
+                icon: Icon(Icons.settings,
+                    color: Theme.of(context).colorScheme.primary),
                 itemBuilder: (context) => [
                   PopupMenuItem(
                     value: 'storage settings',
                     child: Row(
                       children: [
-                        Icon(Icons.storage, size: 20),
+                        Icon(Icons.storage,
+                            size: 20,
+                            color: Theme.of(context).colorScheme.primary),
                         SizedBox(width: 10),
                         Text('Settings')
                       ],
@@ -662,7 +677,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     value: 'display settings',
                     child: Row(
                       children: [
-                        Icon(Icons.color_lens, size: 20),
+                        Icon(
+                          Icons.color_lens,
+                          size: 20,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                         SizedBox(width: 10),
                         Text('Display Settings')
                       ],
@@ -672,7 +691,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     value: 'printing settings',
                     child: Row(
                       children: [
-                        Icon(Icons.print, size: 20),
+                        Icon(
+                          Icons.print,
+                          size: 20,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                         SizedBox(width: 10),
                         Text('Printing Settings')
                       ],
@@ -701,15 +724,16 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   children: [
                     SizedBox(
                       width: 1000,
-                      height: 50,
+                      height: 60,
                       child: Padding(
                         padding: const EdgeInsets.all(8.0),
                         child: TextField(
                           decoration: InputDecoration(
                             hintText: 'Search appointments...',
-                            prefixIcon: const Icon(
+                            prefixIcon: Icon(
                               Icons.search,
-                              color: Color(0xFF18BBB9),
+                              color: Theme.of(context).colorScheme.primary,
+                              size: 30,
                             ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8.0),

@@ -1,45 +1,47 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../utils/database_manager.dart';
-import '../utils/database_helper.dart';
 
 class StorageService {
-  static Future<String?> pickDirectory(BuildContext context) async {
+  // Backup the current database to a user-selected folder.
+  static Future<void> backupCurrentDatabase(
+      BuildContext context, String backupFolderPath) async {
     try {
-      return await FilePicker.platform.getDirectoryPath(
-        dialogTitle: 'Select Database Storage Location',
+      await StorageManager.backupDatabase(backupFolderPath);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Backup successful.")),
       );
-    } on PlatformException catch (e) {
-      if (e.code == 'ENTITLEMENT_NOT_FOUND') {
-        showDialog(
-          context: context,
-          builder: (_) => AlertDialog(
-            title: Text('Permission Required'),
-            content:
-                Text('Please grant file access permissions in System Settings'),
-          ),
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Backup failed: $e")),
+      );
+    }
+  }
+
+  // Let the user pick a backup file and restore it.
+  static Future<void> loadBackupDatabase(BuildContext context) async {
+    String? backupFilePath = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['db'],
+    ).then((result) => result?.files.single.path);
+    if (backupFilePath != null) {
+      try {
+        await StorageManager.loadBackupDatabase(backupFilePath);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Database restored from backup.")),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Restore failed: $e")),
         );
       }
     }
-    return null;
   }
 
-  static Future<void> handleStorageMigration(
-      BuildContext context, String newPath) async {
-    final isValid = await StorageManager.validateStoragePath(newPath);
-
-    if (!isValid) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Selected location is not writable')),
-      );
-      return;
-    }
-
-    await DatabaseHelper().migrateDatabase(newPath);
-    await DatabaseHelper().database;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Database moved to new location successfully')),
+  // Optionally, let the user select a folder for backup.
+  static Future<String?> pickBackupFolder(BuildContext context) async {
+    return await FilePicker.platform.getDirectoryPath(
+      dialogTitle: 'Select Backup Folder',
     );
   }
 }

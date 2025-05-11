@@ -49,7 +49,7 @@ class BookingTable extends StatelessWidget {
                         height: 55,
                         decoration: const BoxDecoration(
                           borderRadius:
-                              BorderRadius.only(topLeft: Radius.circular(8)),
+                              BorderRadius.only(topLeft: Radius.circular(10)),
                         ),
                         padding: const EdgeInsets.all(8.0),
                         child: Center(
@@ -57,83 +57,96 @@ class BookingTable extends StatelessWidget {
                             "WeekDay Time",
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white),
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                                fontSize: 14),
                           ),
                         ),
                       ),
                       // Header cells for each filtered day
                       for (var day in filteredDays)
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Text(
+                        SizedBox(
+                          height: 55,
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
                                   "${Util.dayName(day.weekday)} ${day.day}/${day.month}",
                                   textAlign: TextAlign.center,
                                   style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white),
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.white,
+                                      fontSize: 14),
                                 ),
-                              ),
+                                IconButton(
+                                  icon: const Icon(Icons.print,
+                                      color: Colors.white),
+                                  onPressed: () {
+                                    Navigator.of(context).pushNamed(
+                                        '/appointment-day',
+                                        arguments: {
+                                          'location': location,
+                                          'date': formatter.format(day),
+                                        });
+                                  },
+                                ),
+                              ],
                             ),
-                            IconButton(
-                              icon:
-                                  const Icon(Icons.print, color: Colors.white),
-                              onPressed: () {
-                                Navigator.of(context)
-                                    .pushNamed('/appointment-day', arguments: {
-                                  'location': location,
-                                  'date': formatter.format(day),
-                                });
-                              },
-                            ),
-                          ],
+                          ),
                         ),
                       // Header cell for Morning Time
-                      Padding(
+                      Container(
+                        height: 55,
+                        decoration: const BoxDecoration(
+                          borderRadius:
+                              BorderRadius.only(topLeft: Radius.circular(10)),
+                        ),
                         padding: const EdgeInsets.all(8.0),
                         child: Center(
                           child: const Text(
                             "Morning Time",
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white),
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                                fontSize: 14),
                           ),
                         ),
                       ),
                       // Header for Saturday
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Center(
-                                child: Text(
-                                  "Saturday ${saturday.day}/${saturday.month}",
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white),
-                                ),
+                      SizedBox(
+                        height: 55,
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                "Saturday ${saturday.day}/${saturday.month}",
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    color: Colors.white,
+                                    fontSize: 14),
                               ),
-                            ),
+                              IconButton(
+                                icon: const Icon(Icons.print,
+                                    color: Colors.white),
+                                onPressed: () {
+                                  Navigator.of(context).pushNamed(
+                                      '/appointment-day',
+                                      arguments: {
+                                        'location': location,
+                                        'date': formatter.format(saturday),
+                                      });
+                                },
+                              ),
+                            ],
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.print, color: Colors.white),
-                            onPressed: () {
-                              Navigator.of(context)
-                                  .pushNamed('/appointment-day', arguments: {
-                                'location': location,
-                                'date': formatter.format(saturday),
-                              });
-                            },
-                          ),
-                        ],
+                        ),
                       ),
                     ],
                   ),
@@ -164,9 +177,9 @@ class BookingTable extends StatelessWidget {
                             afternoonTimeSlot,
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
+                                fontWeight: FontWeight.w900,
+                                color: Theme.of(context).colorScheme.primary,
+                                fontSize: 16),
                           ),
                         ),
                         // For each filtered day used to build the booking cell.
@@ -188,8 +201,9 @@ class BookingTable extends StatelessWidget {
                             morningTimeSlot,
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w900,
                               color: Theme.of(context).colorScheme.primary,
+                              fontSize: 16,
                             ),
                           ),
                         ),
