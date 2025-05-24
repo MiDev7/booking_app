@@ -304,10 +304,13 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                             child: const Text('Book'),
                           ),
                           Consumer<PrintProvider>(
-                              builder: (context, printProvider, child) {
-                            return TextButton(
+                            builder: (context, printProvider, child) {
+                              return TextButton(
                                 onPressed: () {
-                                  // Print in 30x20mm (WxH) format.
+                                  final currentLocation =
+                                      Provider.of<LocationProvider>(context,
+                                              listen: false)
+                                          .selectedLocation;
                                   Printing.layoutPdf(
                                     onLayout: (format) async {
                                       final pdf = await PdfAppointment
@@ -317,9 +320,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                               patientNameController.text,
                                               timeSlot,
                                               Util.formatLocation(
-                                                  Provider.of<LocationProvider>(
-                                                          context)
-                                                      .selectedLocation));
+                                                  currentLocation));
                                       return pdf;
                                     },
                                     name: 'appointments.pdf',
@@ -332,8 +333,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                     ),
                                   );
                                 },
-                                child: const Text("Print"));
-                          })
+                                child: const Text("Print"),
+                              );
+                            },
+                          )
                         ],
                       );
                     },
@@ -426,6 +429,40 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                             'Book',
                           ),
                         ),
+                        Consumer<PrintProvider>(
+                          builder: (context, printProvider, child) {
+                            return TextButton(
+                              onPressed: () {
+                                final currentLocation =
+                                    Provider.of<LocationProvider>(context,
+                                            listen: false)
+                                        .selectedLocation;
+                                Printing.layoutPdf(
+                                  onLayout: (format) async {
+                                    final pdf = await PdfAppointment
+                                        .generateSingleAppointment(
+                                            format,
+                                            day,
+                                            patientNameController.text,
+                                            timeSlot,
+                                            Util.formatLocation(
+                                                currentLocation));
+                                    return pdf;
+                                  },
+                                  name: 'appointments.pdf',
+                                  format: PdfPageFormat(
+                                    printProvider.widthPrintingLabel *
+                                        printProvider.unit,
+                                    printProvider.heightPrintingLabel *
+                                        printProvider.unit,
+                                    marginAll: 1.0 * printProvider.unit,
+                                  ),
+                                );
+                              },
+                              child: const Text("Print"),
+                            );
+                          },
+                        )
                       ],
                     );
                   },

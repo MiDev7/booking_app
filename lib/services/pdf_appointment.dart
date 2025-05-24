@@ -91,13 +91,11 @@ class PdfAppointment {
   }
 
   static Widget _buildAppointment(List<Map<String, dynamic>> appointments) {
-    return TableHelper.fromTextArray(
-      headers: ['Time', 'Patient'],
-      data: appointments.map((appointment) {
-        return [
-          appointment['time'],
-          "${appointment['patientFirstName']} ${appointment['patientLastName']}",
-        ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: appointments.map((appointment) {
+        return Text(
+            "${appointment['patientFirstName']} ${appointment['patientLastName']}");
       }).toList(),
     );
   }

@@ -18,8 +18,10 @@ class _PrintSettingsDialogState extends State<PrintSettingsDialog> {
   void initState() {
     super.initState();
     // Initialize the controllers with default values if needed
-    heightController.text = '25'; // Default height
-    widthController.text = '50'; // Default width
+    // Default width
+    final printProvider = Provider.of<PrintProvider>(context, listen: false);
+    heightController.text = printProvider.heightPrintingLabel.toString();
+    widthController.text = printProvider.widthPrintingLabel.toString();
   }
 
   @override

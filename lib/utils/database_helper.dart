@@ -130,7 +130,6 @@ class DatabaseHelper {
 
   Future<bool> updateAppointmentDateTimeLocation(
       String id, String date, String time, String location) async {
-
     Database db = await database;
     try {
       int result = await db.update(
@@ -143,7 +142,6 @@ class DatabaseHelper {
         where: 'id = ?',
         whereArgs: [id],
       );
-
     } catch (e) {
       return false;
     }
@@ -198,9 +196,13 @@ class DatabaseHelper {
 
   Future<List<Map<String, dynamic>>> getAppointmentsByName(String name) async {
     Database db = await database;
+
+    final firstName = name.split(' ')[0];
+    final parts = name.split(' ');
+    final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
     final List<Map<String, dynamic>> result = await db.rawQuery(
       "SELECT * FROM appointments WHERE patientFirstName LIKE ? OR patientLastName LIKE ?",
-      ['%$name%', '%$name%'],
+      ['%$firstName%', '%$lastName%'],
     );
 
     return result;
