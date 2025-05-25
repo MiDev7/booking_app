@@ -8,13 +8,8 @@ class StorageManager {
   static const _dbPathKey = 'database_path';
 
   static Future<String> getDatabasePath() async {
-    final prefs = await SharedPreferences.getInstance();
-    String? savedPath = prefs.getString(_dbPathKey);
-    if (savedPath == null || savedPath.isEmpty) {
-      final directory = await getApplicationDocumentsDirectory();
-      savedPath = join(directory.path, 'appointments.db');
-      await prefs.setString(_dbPathKey, savedPath);
-    }
+    final directory = await getApplicationDocumentsDirectory();
+    final savedPath = join(directory.path, 'appointments.db');
     return savedPath;
   }
 

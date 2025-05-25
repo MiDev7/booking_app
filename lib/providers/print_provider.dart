@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:pdf/pdf.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-
 class PrintProvider extends ChangeNotifier {
-  double _widthPrintingLabel = 0.0;
-  double _heightPrintingLabel = 0.0;
+  double _widthPrintingLabel = 50.0;
+  double _heightPrintingLabel = 25.0;
 
   double _unit = PdfPageFormat.mm;
 

@@ -340,13 +340,13 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                                       currentLocation));
                                           return pdf;
                                         },
-                                        name: 'appointments.pdf',
+                                        name: 'appointments_${timeSlot}.pdf',
                                         format: PdfPageFormat(
                                           printProvider.widthPrintingLabel *
                                               printProvider.unit,
                                           printProvider.heightPrintingLabel *
                                               printProvider.unit,
-                                          marginAll: 1.0 * printProvider.unit,
+                                          marginAll: 0,
                                         ),
                                       );
                                     },
@@ -390,7 +390,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                       date: formattedDate,
                                       time: timeSlot,
                                       location: Util.formatLocation(
-                                          Provider.of<LocationProvider>(context)
+                                          Provider.of<LocationProvider>(context, listen: false)
                                               .selectedLocation))));
                             },
                             icon:
@@ -468,13 +468,13 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                                     currentLocation));
                                         return pdf;
                                       },
-                                      name: 'appointments.pdf',
+                                      name: 'appointments_${timeSlot}.pdf',
                                       format: PdfPageFormat(
                                         printProvider.widthPrintingLabel *
                                             printProvider.unit,
                                         printProvider.heightPrintingLabel *
                                             printProvider.unit,
-                                        marginAll: 1.0 * printProvider.unit,
+                                        marginAll: 0,
                                       ),
                                     );
                                   },
