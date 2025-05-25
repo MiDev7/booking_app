@@ -332,90 +332,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                               ),
                               Consumer<PrintProvider>(
                                 builder: (context, printProvider, child) {
-                                  return TextButton(
-                                    onPressed: () async {
-                                      final currentLocation =
-                                          Provider.of<LocationProvider>(context,
-                                                  listen: false)
-                                              .selectedLocation;
-                                      final Printer? printer = await getPrinter(
-                                          printProvider.printer);
-                                      await Printing.directPrintPdf(
-                                        printer: printer!,
-                                        onLayout: (format) async {
-                                          final pdf = await PdfAppointment
-                                              .generateSingleAppointment(
-                                                  format,
-                                                  day,
-                                                  patientNameController.text,
-                                                  timeSlot,
-                                                  Util.formatLocation(
-                                                      currentLocation));
-                                          return pdf;
-                                        },
-                                        name: 'appointments_${timeSlot}.pdf',
-                                        format: PdfPageFormat(
-                                          printProvider.widthPrintingLabel *
-                                              printProvider.unit,
-                                          printProvider.heightPrintingLabel *
-                                              printProvider.unit,
-                                          marginAll: 0,
-                                        ),
-                                      );
-                                    },
-                                    child: const Text("Print"),
-                                  );
-                                },
-                              ),
-                              Consumer<PrintProvider>(
-                                builder: (context, printProvider, child) {
-                                  return TextButton(
-                                    onPressed: () async {
-
-
-                                      final currentLocation =
-                                          Provider.of<LocationProvider>(context,
-                                              listen: false)
-                                              .selectedLocation;
-                                      final Printer? printer = await getPrinter(
-                                          printProvider.printer);
-                                      final copies = 2;
-                                      for (int i = 0; i < copies; i++) {
-                                        await Printing.directPrintPdf(
-                                          printer: printer!,
-                                          onLayout: (format) async {
-                                            final pdf = await PdfAppointment
-                                                .generateSingleAppointment(
-                                                format,
-                                                day,
-                                                patientNameController.text,
-                                                timeSlot,
-                                                Util.formatLocation(
-                                                    currentLocation));
-                                            return pdf;
-                                          },
-                                          name: 'appointments_${timeSlot}.pdf',
-                                          format: PdfPageFormat(
-                                            printProvider.widthPrintingLabel *
-                                                printProvider.unit,
-                                            printProvider.heightPrintingLabel *
-                                                printProvider.unit,
-                                            marginAll: 0,
-                                          ),
-                                        );
-                                        await Future.delayed(Duration(milliseconds: 100));
-                                      }
-
-
-
-                                    },
-                                    child: Text("Print 2"),
-                                  );
-                                },
-                              ),
-                              Consumer<PrintProvider>(
-                                builder: (context, printProvider, child) {
-                                  return TextButton(
+                                  return ElevatedButton(
+                                    style: ButtonStyle(
+                                    ),
                                     onPressed: () async {
                                       if (patientNameController.text.isEmpty) {
                                         return;
