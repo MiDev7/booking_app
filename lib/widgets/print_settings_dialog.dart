@@ -92,7 +92,7 @@ class _PrintSettingsDialogState extends State<PrintSettingsDialog> {
               onPressed: () async {
                 final Printer? printer =
                     await Printing.pickPrinter(context: context);
-                Provider.of<PrintProvider>(context).setPrinter(printer!.name);
+                Provider.of<PrintProvider>(context, listen: false).setPrinter(printer!.name);
               },
               child: Text("Select Printer"),
             )
