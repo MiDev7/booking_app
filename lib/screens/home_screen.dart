@@ -233,7 +233,17 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     });
   }
 
-  //* Navigate to Edit Appointment Screen
+  // * Return printer from string
+  Future<Printer?> getPrinter(String printerName) async {
+    final List<Printer> printers = await Printing.listPrinters();
+
+    try {
+      return printers.firstWhere((printer) => printer.name == printerName);
+    } catch (e) {
+      print(e);
+      return null;
+    }
+  }
 
   //* Builds a booking cell that displays the booked count or a Book button.
   Widget _buildBookingCell(DateTime day, String timeSlot, String location) {
@@ -390,7 +400,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                       date: formattedDate,
                                       time: timeSlot,
                                       location: Util.formatLocation(
-                                          Provider.of<LocationProvider>(context, listen: false)
+                                          Provider.of<LocationProvider>(context,
+                                                  listen: false)
                                               .selectedLocation))));
                             },
                             icon:

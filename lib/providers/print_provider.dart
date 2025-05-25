@@ -8,9 +8,13 @@ class PrintProvider extends ChangeNotifier {
 
   double _unit = PdfPageFormat.mm;
 
+  String _printer = "";
+
   double get widthPrintingLabel => _widthPrintingLabel;
   double get heightPrintingLabel => _heightPrintingLabel;
   double get unit => _unit;
+
+  String get printer => _printer;
 
   PrintProvider() {
     _loadPrintingLabelDimensions();
@@ -20,6 +24,7 @@ class PrintProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _widthPrintingLabel = prefs.getDouble('widthPrintingLabel') ?? 50.0;
     _heightPrintingLabel = prefs.getDouble('heightPrintingLabel') ?? 25.0;
+    _printer = prefs.getString('printer') ?? "";
     _unit = prefs.getDouble('unit') ?? PdfPageFormat.mm;
     notifyListeners();
   }
@@ -66,6 +71,15 @@ class PrintProvider extends ChangeNotifier {
     prefs.then((prefs) {
       prefs.setDouble('widthPrintingLabel', _widthPrintingLabel);
       prefs.setDouble('heightPrintingLabel', _heightPrintingLabel);
+    });
+    notifyListeners();
+  }
+
+  void setPrinter(String printerName) {
+    _printer = printerName;
+    final prefs = SharedPreferences.getInstance();
+    prefs.then((prefs) {
+      prefs.setString('printer', printerName);
     });
     notifyListeners();
   }

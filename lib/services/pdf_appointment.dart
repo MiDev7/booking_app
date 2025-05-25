@@ -77,7 +77,7 @@ class PdfAppointment {
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
         Text(
-            'Appointment ${Util.dayName(date.weekday)} ${date.day}/${date.month}/${date.year}',
+            'Appointment ${Util.dayName(date.weekday)} ${date.weekday} ${date.day}/${date.month}/${date.year}',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
         Container(
           child: Text(

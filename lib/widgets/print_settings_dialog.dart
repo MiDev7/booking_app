@@ -2,6 +2,7 @@ import 'package:booking_app/providers/print_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pdf/pdf.dart';
+import 'package:printing/printing.dart';
 
 class PrintSettingsDialog extends StatefulWidget {
   const PrintSettingsDialog({super.key});
@@ -77,6 +78,24 @@ class _PrintSettingsDialogState extends State<PrintSettingsDialog> {
                 );
               },
             ),
+
+            const SizedBox(
+              height: 25,
+            ),
+            Text(
+                "Printer Name: ${Provider.of<PrintProvider>(context).printer}"),
+
+            const SizedBox(
+              height: 10,
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final Printer? printer =
+                    await Printing.pickPrinter(context: context);
+                Provider.of<PrintProvider>(context).setPrinter(printer!.name);
+              },
+              child: Text("Select Printer"),
+            )
           ],
         ),
       ),
