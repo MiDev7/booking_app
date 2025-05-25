@@ -333,12 +333,15 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                               Consumer<PrintProvider>(
                                 builder: (context, printProvider, child) {
                                   return TextButton(
-                                    onPressed: () {
+                                    onPressed: () async {
                                       final currentLocation =
                                           Provider.of<LocationProvider>(context,
                                                   listen: false)
                                               .selectedLocation;
-                                      Printing.layoutPdf(
+                                      final Printer? printer = await getPrinter(
+                                          printProvider.printer);
+                                      await Printing.directPrintPdf(
+                                        printer: printer!,
                                         onLayout: (format) async {
                                           final pdf = await PdfAppointment
                                               .generateSingleAppointment(
@@ -462,12 +465,15 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                             Consumer<PrintProvider>(
                               builder: (context, printProvider, child) {
                                 return TextButton(
-                                  onPressed: () {
+                                  onPressed: () async {
                                     final currentLocation =
                                         Provider.of<LocationProvider>(context,
                                                 listen: false)
                                             .selectedLocation;
-                                    Printing.layoutPdf(
+                                    final Printer? printer =
+                                        await getPrinter(printProvider.printer);
+                                    await Printing.directPrintPdf(
+                                      printer: printer!,
                                       onLayout: (format) async {
                                         final pdf = await PdfAppointment
                                             .generateSingleAppointment(
