@@ -1,3 +1,4 @@
+import 'package:booking_app/providers/holiday_provider.dart';
 import 'package:booking_app/providers/print_provider.dart';
 import 'package:booking_app/screens/home_screen.dart';
 
@@ -38,7 +39,8 @@ Future<void> main() async {
       ChangeNotifierProvider(create: (context) => StorageNotifier()),
       ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ChangeNotifierProvider(create: (_) => LocationProvider()),
-      ChangeNotifierProvider(create: (_) => PrintProvider())
+      ChangeNotifierProvider(create: (_) => PrintProvider()),
+      ChangeNotifierProvider(create: (_) => HolidayProvider()),
     ],
     child: const MyApp(),
   ));

@@ -16,10 +16,12 @@ import 'package:booking_app/screens/edit_appointment_screen.dart';
 import 'package:booking_app/widgets/print_settings_dialog.dart';
 import 'package:booking_app/widgets/settings_dialog.dart';
 import 'package:booking_app/widgets/display_settings_dialog.dart';
+import 'package:booking_app/widgets/holiday_settings_dialog.dart';
 
 import 'package:booking_app/widgets/booking_table.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:booking_app/providers/theme_provider.dart';
+import 'package:booking_app/providers/holiday_provider.dart';
 
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
@@ -241,253 +243,272 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       timeSlot,
       location,
     );
-    return FutureBuilder<int>(
-      key: ValueKey('$_bookingRefresh-$formattedDate-$timeSlot'),
-      future: future,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return SizedBox(
-            height: 50,
-            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-          );
-        } else if (snapshot.hasError) {
-          return SizedBox(
-            height: 50,
-            child: Center(child: Icon(Icons.error, color: Colors.red)),
-          );
-        } else {
-          final int bookedCount = snapshot.data ?? 0;
-          if (bookedCount > 0) {
-            return SizedBox(
-              height: 50,
-              child: ElevatedButton(
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      TextEditingController patientNameController =
-                          TextEditingController();
-                      return AlertDialog(
-                        title: const Text('Book Appointment'),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                                'Book appointment on $formattedDate at $timeSlot?'),
-                            const SizedBox(height: 8),
-                            TextField(
-                              controller: patientNameController,
-                              decoration: const InputDecoration(
-                                labelText: 'Patient Name',
-                              ),
+    return Consumer<HolidayProvider>(
+        builder: (context, holidayProvider, child) {
+      bool isHoliday = holidayProvider.holidays.any((holiday) {
+        final holidayDate = DateTime.parse(holiday);
+        return holidayDate.year == day.year &&
+            holidayDate.month == day.month &&
+            holidayDate.day == day.day;
+      });
+      if (isHoliday) {
+        return Container(
+          height: 50,
+          color: Theme.of(context).colorScheme.primary,
+        );
+      } else {
+        return FutureBuilder<int>(
+          key: ValueKey('$_bookingRefresh-$formattedDate-$timeSlot'),
+          future: future,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return SizedBox(
+                height: 50,
+                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              );
+            } else if (snapshot.hasError) {
+              return SizedBox(
+                height: 50,
+                child: Center(child: Icon(Icons.error, color: Colors.red)),
+              );
+            } else {
+              final int bookedCount = snapshot.data ?? 0;
+              if (bookedCount > 0) {
+                return SizedBox(
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          TextEditingController patientNameController =
+                              TextEditingController();
+                          return AlertDialog(
+                            title: const Text('Book Appointment'),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                    'Book appointment on $formattedDate at $timeSlot?'),
+                                const SizedBox(height: 8),
+                                TextField(
+                                  autofocus: true,
+                                  controller: patientNameController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Patient Name',
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('Cancel'),
-                          ),
-                          TextButton(
-                            onPressed: () async {
-                              if (patientNameController.text.isEmpty) {
-                                return;
-                              }
-                              await _bookAppointment(formattedDate, timeSlot,
-                                  patientNameController.text);
-                              // Increment the refresh counter so that all FutureBuilders update.
-                              setState(() {
-                                _bookingRefresh++;
-                              });
-                              Navigator.of(context).pop();
-                            },
-                            child: const Text('Book'),
-                          ),
-                          Consumer<PrintProvider>(
-                            builder: (context, printProvider, child) {
-                              return TextButton(
-                                onPressed: () {
-                                  final currentLocation =
-                                      Provider.of<LocationProvider>(context,
-                                              listen: false)
-                                          .selectedLocation;
-                                  Printing.layoutPdf(
-                                    onLayout: (format) async {
-                                      final pdf = await PdfAppointment
-                                          .generateSingleAppointment(
-                                              format,
-                                              day,
-                                              patientNameController.text,
-                                              timeSlot,
-                                              Util.formatLocation(
-                                                  currentLocation));
-                                      return pdf;
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: const Text('Cancel'),
+                              ),
+                              TextButton(
+                                onPressed: () async {
+                                  if (patientNameController.text.isEmpty) {
+                                    return;
+                                  }
+                                  await _bookAppointment(formattedDate,
+                                      timeSlot, patientNameController.text);
+                                  // Increment the refresh counter so that all FutureBuilders update.
+                                  setState(() {
+                                    _bookingRefresh++;
+                                  });
+                                  Navigator.of(context).pop();
+                                },
+                                child: const Text('Book'),
+                              ),
+                              Consumer<PrintProvider>(
+                                builder: (context, printProvider, child) {
+                                  return TextButton(
+                                    onPressed: () {
+                                      final currentLocation =
+                                          Provider.of<LocationProvider>(context,
+                                                  listen: false)
+                                              .selectedLocation;
+                                      Printing.layoutPdf(
+                                        onLayout: (format) async {
+                                          final pdf = await PdfAppointment
+                                              .generateSingleAppointment(
+                                                  format,
+                                                  day,
+                                                  patientNameController.text,
+                                                  timeSlot,
+                                                  Util.formatLocation(
+                                                      currentLocation));
+                                          return pdf;
+                                        },
+                                        name: 'appointments.pdf',
+                                        format: PdfPageFormat(
+                                          printProvider.widthPrintingLabel *
+                                              printProvider.unit,
+                                          printProvider.heightPrintingLabel *
+                                              printProvider.unit,
+                                          marginAll: 1.0 * printProvider.unit,
+                                        ),
+                                      );
                                     },
-                                    name: 'appointments.pdf',
-                                    format: PdfPageFormat(
-                                      printProvider.widthPrintingLabel *
-                                          printProvider.unit,
-                                      printProvider.heightPrintingLabel *
-                                          printProvider.unit,
-                                      marginAll: 1.0 * printProvider.unit,
-                                    ),
+                                    child: const Text("Print"),
                                   );
                                 },
-                                child: const Text("Print"),
-                              );
-                            },
-                          )
-                        ],
+                              )
+                            ],
+                          );
+                        },
                       );
                     },
-                  );
-                },
-                style: ButtonStyle(
-                  backgroundColor: WidgetStatePropertyAll(
-                    bookedCount >= 10
-                        ? Colors.red
-                        : (bookedCount >= 5)
-                            ? Colors.orange
-                            : Theme.of(context).colorScheme.primary,
+                    style: ButtonStyle(
+                      backgroundColor: WidgetStatePropertyAll(
+                        bookedCount >= 10
+                            ? Colors.red
+                            : (bookedCount >= 5)
+                                ? Colors.orange
+                                : Theme.of(context).colorScheme.primary,
+                      ),
+                      shape: WidgetStatePropertyAll(
+                        RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text("Patients: $bookedCount",
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 14)),
+                        IconButton(
+                            onPressed: () {
+                              // Redirect to view appointment list screen
+
+                              Navigator.of(context).push(MaterialPageRoute(
+                                  builder: (context) => EditAppointmentScreen(
+                                      date: formattedDate,
+                                      time: timeSlot,
+                                      location: Util.formatLocation(
+                                          Provider.of<LocationProvider>(context)
+                                              .selectedLocation))));
+                            },
+                            icon:
+                                Icon(Icons.remove_red_eye, color: Colors.white))
+                      ],
+                    ),
                   ),
-                  shape: WidgetStatePropertyAll(
-                    RoundedRectangleBorder(
+                );
+              }
+              return SizedBox(
+                height: 50,
+                child: GestureDetector(
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        TextEditingController patientNameController =
+                            TextEditingController();
+                        return AlertDialog(
+                          title: const Text('Book Appointment'),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                  'Book appointment on $formattedDate at $timeSlot?'),
+                              const SizedBox(height: 8),
+                              TextField(
+                                autofocus: true,
+                                controller: patientNameController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Patient Name',
+                                ),
+                              ),
+                            ],
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                if (patientNameController.text.isEmpty) {
+                                  return;
+                                }
+                                await _bookAppointment(formattedDate, timeSlot,
+                                    patientNameController.text);
+                                // Increment the refresh counter so that all FutureBuilders update.
+                                setState(() {
+                                  _bookingRefresh++;
+                                });
+                                Navigator.of(context).pop();
+                              },
+                              child: const Text(
+                                'Book',
+                              ),
+                            ),
+                            Consumer<PrintProvider>(
+                              builder: (context, printProvider, child) {
+                                return TextButton(
+                                  onPressed: () {
+                                    final currentLocation =
+                                        Provider.of<LocationProvider>(context,
+                                                listen: false)
+                                            .selectedLocation;
+                                    Printing.layoutPdf(
+                                      onLayout: (format) async {
+                                        final pdf = await PdfAppointment
+                                            .generateSingleAppointment(
+                                                format,
+                                                day,
+                                                patientNameController.text,
+                                                timeSlot,
+                                                Util.formatLocation(
+                                                    currentLocation));
+                                        return pdf;
+                                      },
+                                      name: 'appointments.pdf',
+                                      format: PdfPageFormat(
+                                        printProvider.widthPrintingLabel *
+                                            printProvider.unit,
+                                        printProvider.heightPrintingLabel *
+                                            printProvider.unit,
+                                        marginAll: 1.0 * printProvider.unit,
+                                      ),
+                                    );
+                                  },
+                                  child: const Text("Print"),
+                                );
+                              },
+                            )
+                          ],
+                        );
+                      },
+                    );
+                  },
+                  child: Container(
+                    height: 50,
+                    decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8.0),
+                    ),
+                    child: Center(
+                      child: Text(
+                        "Book",
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14),
+                      ),
                     ),
                   ),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text("Patients: $bookedCount",
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 14)),
-                    IconButton(
-                        onPressed: () {
-                          // Redirect to view appointment list screen
-
-                          Navigator.of(context).push(MaterialPageRoute(
-                              builder: (context) => EditAppointmentScreen(
-                                  date: formattedDate,
-                                  time: timeSlot,
-                                  location: Util.formatLocation(
-                                      Provider.of<LocationProvider>(context)
-                                          .selectedLocation))));
-                        },
-                        icon: Icon(Icons.remove_red_eye, color: Colors.white))
-                  ],
-                ),
-              ),
-            );
-          }
-          return SizedBox(
-            height: 50,
-            child: GestureDetector(
-              onTap: () {
-                showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    TextEditingController patientNameController =
-                        TextEditingController();
-                    return AlertDialog(
-                      title: const Text('Book Appointment'),
-                      content: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                              'Book appointment on $formattedDate at $timeSlot?'),
-                          const SizedBox(height: 8),
-                          TextField(
-                            controller: patientNameController,
-                            decoration: const InputDecoration(
-                              labelText: 'Patient Name',
-                            ),
-                          ),
-                        ],
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('Cancel'),
-                        ),
-                        TextButton(
-                          onPressed: () async {
-                            if (patientNameController.text.isEmpty) {
-                              return;
-                            }
-                            await _bookAppointment(formattedDate, timeSlot,
-                                patientNameController.text);
-                            // Increment the refresh counter so that all FutureBuilders update.
-                            setState(() {
-                              _bookingRefresh++;
-                            });
-                            Navigator.of(context).pop();
-                          },
-                          child: const Text(
-                            'Book',
-                          ),
-                        ),
-                        Consumer<PrintProvider>(
-                          builder: (context, printProvider, child) {
-                            return TextButton(
-                              onPressed: () {
-                                final currentLocation =
-                                    Provider.of<LocationProvider>(context,
-                                            listen: false)
-                                        .selectedLocation;
-                                Printing.layoutPdf(
-                                  onLayout: (format) async {
-                                    final pdf = await PdfAppointment
-                                        .generateSingleAppointment(
-                                            format,
-                                            day,
-                                            patientNameController.text,
-                                            timeSlot,
-                                            Util.formatLocation(
-                                                currentLocation));
-                                    return pdf;
-                                  },
-                                  name: 'appointments.pdf',
-                                  format: PdfPageFormat(
-                                    printProvider.widthPrintingLabel *
-                                        printProvider.unit,
-                                    printProvider.heightPrintingLabel *
-                                        printProvider.unit,
-                                    marginAll: 1.0 * printProvider.unit,
-                                  ),
-                                );
-                              },
-                              child: const Text("Print"),
-                            );
-                          },
-                        )
-                      ],
-                    );
-                  },
-                );
-              },
-              child: Container(
-                height: 50,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-                child: Center(
-                  child: Text(
-                    "Book",
-                    style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14),
-                  ),
-                ),
-              ),
-            ),
-          );
-        }
-      },
-    );
+              );
+            }
+          },
+        );
+      }
+    });
   }
 
   //* Show  storage settings dialog
@@ -513,6 +534,14 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       context: context,
       barrierDismissible: false,
       builder: (context) => const PrintSettingsDialog(),
+    );
+  }
+
+  void _showHolidaySettingsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const HolidaySettingsDialog(),
     );
   }
 
@@ -737,6 +766,16 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                         Text('Printing Settings')
                       ],
                     ),
+                  ),
+                  PopupMenuItem(
+                    value: 'calendar settings',
+                    child: Row(children: [
+                      Icon(Icons.calendar_month_rounded,
+                          size: 20,
+                          color: Theme.of(context).colorScheme.primary),
+                      SizedBox(width: 10),
+                      Text('Calendar Settings')
+                    ]),
                   )
                 ],
                 onSelected: (value) {
@@ -746,6 +785,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     _showDisplaySettingsDialog(context);
                   } else if (value == 'printing settings') {
                     _showPrintSettingsDialog(context);
+                  } else if (value == 'calendar settings') {
+                    _showHolidaySettingsDialog(context);
                   }
                 },
               )
