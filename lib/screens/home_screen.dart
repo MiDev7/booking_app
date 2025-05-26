@@ -246,7 +246,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   }
 
   //* Builds a booking cell that displays the booked count or a Book button.
-  Widget _buildBookingCell(DateTime day, String timeSlot, String location)  {
+  Widget _buildBookingCell(DateTime day, String timeSlot, String location) {
     final formattedDate = formatter.format(day);
     final future = DatabaseHelper().isAppointmentBookedCount(
       formattedDate,
@@ -334,17 +334,21 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                 builder: (context, printProvider, child) {
                                   return ElevatedButton(
                                     style: ButtonStyle(
-                                      backgroundColor: WidgetStatePropertyAll<Color> (Theme.of(context).colorScheme.primary),
+                                      backgroundColor:
+                                          WidgetStatePropertyAll<Color>(
+                                              Theme.of(context)
+                                                  .colorScheme
+                                                  .primary),
                                     ),
                                     onPressed: () async {
                                       if (patientNameController.text.isEmpty) {
                                         return;
                                       }
-                                      await _bookAppointment(formattedDate, timeSlot,
-                                          patientNameController.text);
+                                      await _bookAppointment(formattedDate,
+                                          timeSlot, patientNameController.text);
                                       final currentLocation =
                                           Provider.of<LocationProvider>(context,
-                                              listen: false)
+                                                  listen: false)
                                               .selectedLocation;
                                       final Printer? printer = await getPrinter(
                                           printProvider.printer);
@@ -355,12 +359,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                           onLayout: (format) async {
                                             final pdf = await PdfAppointment
                                                 .generateSingleAppointment(
-                                                format,
-                                                day,
-                                                patientNameController.text,
-                                                timeSlot,
-                                                Util.formatLocation(
-                                                    currentLocation));
+                                                    format,
+                                                    day,
+                                                    patientNameController.text,
+                                                    timeSlot,
+                                                    Util.formatLocation(
+                                                        currentLocation));
                                             return pdf;
                                           },
                                           name: 'appointments_${timeSlot}.pdf',
@@ -372,7 +376,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                             marginAll: 0,
                                           ),
                                         );
-                                        await Future.delayed(Duration(milliseconds: 50));
+                                        await Future.delayed(
+                                            Duration(milliseconds: 50));
                                       }
 
                                       setState(() {
@@ -381,11 +386,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
                                       Navigator.of(context).pop();
                                     },
-                                    child: const Text("Book/Print", style: TextStyle( color: Colors.white)),
+                                    child: const Text("Book/Print",
+                                        style: TextStyle(color: Colors.white)),
                                   );
                                 },
                               )
-
                             ],
                           );
                         },
@@ -568,20 +573,22 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                               builder: (context, printProvider, child) {
                                 return ElevatedButton(
                                   style: ButtonStyle(
-                                    backgroundColor: WidgetStatePropertyAll<Color> (Theme.of(context).colorScheme.primary),
+                                    backgroundColor: WidgetStatePropertyAll<
+                                            Color>(
+                                        Theme.of(context).colorScheme.primary),
                                   ),
                                   onPressed: () async {
                                     if (patientNameController.text.isEmpty) {
                                       return;
                                     }
-                                    await _bookAppointment(formattedDate, timeSlot,
-                                        patientNameController.text);
+                                    await _bookAppointment(formattedDate,
+                                        timeSlot, patientNameController.text);
                                     final currentLocation =
                                         Provider.of<LocationProvider>(context,
-                                            listen: false)
+                                                listen: false)
                                             .selectedLocation;
-                                    final Printer? printer = await getPrinter(
-                                        printProvider.printer);
+                                    final Printer? printer =
+                                        await getPrinter(printProvider.printer);
                                     final copies = 2;
                                     for (int i = 0; i < copies; i++) {
                                       await Printing.directPrintPdf(
@@ -589,12 +596,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                         onLayout: (format) async {
                                           final pdf = await PdfAppointment
                                               .generateSingleAppointment(
-                                              format,
-                                              day,
-                                              patientNameController.text,
-                                              timeSlot,
-                                              Util.formatLocation(
-                                                  currentLocation));
+                                                  format,
+                                                  day,
+                                                  patientNameController.text,
+                                                  timeSlot,
+                                                  Util.formatLocation(
+                                                      currentLocation));
                                           return pdf;
                                         },
                                         name: 'appointments_${timeSlot}.pdf',
@@ -606,7 +613,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                           marginAll: 0,
                                         ),
                                       );
-                                      await Future.delayed(Duration(milliseconds: 50));
+                                      await Future.delayed(
+                                          Duration(milliseconds: 50));
                                     }
 
                                     setState(() {
@@ -615,7 +623,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
                                     Navigator.of(context).pop();
                                   },
-                                  child: const Text("Book/Print", style: TextStyle(color: Colors.white)),
+                                  child: const Text("Book/Print",
+                                      style: TextStyle(color: Colors.white)),
                                 );
                               },
                             )
@@ -928,137 +937,160 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 },
               )
             ]),
-        body: Row(
-          children: <Widget>[
-            Expanded(flex: 1, child: Container()),
-            Expanded(
-                flex: 38,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 1000,
-                      height: 60,
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: TextField(
-                          decoration: InputDecoration(
-                            hintText: 'Search appointments...',
-                            prefixIcon: Icon(
-                              Icons.search,
-                              color: Theme.of(context).colorScheme.primary,
-                              size: 30,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
-                          ),
-                          onSubmitted: (value) {
-                            if (value.isNotEmpty) {
-                              Navigator.of(context)
-                                  .pushNamed('/search', arguments: {
-                                'name': value,
-                              });
-                            }
-                          },
-                        ),
-                      ),
-                    ),
+        body: Container(
+          // color: Colors.amber[800],
+          width: MediaQuery.of(context).size.width,
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height,
+            child: Column(
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                Expanded(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.max,
+                    children: <Widget>[
+                      Expanded(flex: 1, child: Container()),
+                      Expanded(
+                          flex: 38,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: 1000,
+                                height: 60,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: TextField(
+                                    decoration: InputDecoration(
+                                      hintText: 'Search appointments...',
+                                      prefixIcon: Icon(
+                                        Icons.search,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
+                                        size: 30,
+                                      ),
+                                      border: OutlineInputBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(8.0),
+                                      ),
+                                    ),
+                                    onSubmitted: (value) {
+                                      if (value.isNotEmpty) {
+                                        Navigator.of(context)
+                                            .pushNamed('/search', arguments: {
+                                          'name': value,
+                                        });
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ),
 
-                    // Navigation and location switch controls.
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            ElevatedButton(
-                              onPressed: () {
-                                dateProvider.previousWeek();
-                                _updateWeekKeyAndLoadPreference();
-                                setState(() {});
-                              },
-                              child: const Icon(Icons.arrow_back),
-                            ),
-                            const SizedBox(width: 4),
-                            ElevatedButton(
-                              onPressed: () {
-                                dateProvider.nextWeek();
-                                _updateWeekKeyAndLoadPreference();
-                                setState(() {});
-                              },
-                              child: const Icon(Icons.arrow_forward),
-                            ),
-                            const SizedBox(width: 50),
-                            ElevatedButton(
-                              onPressed: () {
-                                dateProvider.currentDate(DateTime.now());
-                                _updateWeekKeyAndLoadPreference();
-                                setState(() {});
-                              },
-                              child: const Text("Now"),
-                            ),
-                            const SizedBox(width: 4),
-                            ElevatedButton(
-                              onPressed: () {
-                                dateProvider.jumpWeeks(1);
-                                _updateWeekKeyAndLoadPreference();
-                                setState(() {});
-                              },
-                              child: const Text("1"),
-                            ),
-                            const SizedBox(width: 4),
-                            ElevatedButton(
-                              onPressed: () {
-                                dateProvider.jumpWeeks(2);
-                                _updateWeekKeyAndLoadPreference();
-                                setState(() {});
-                              },
-                              child: const Text("2"),
-                            ),
-                            const SizedBox(width: 4),
-                            ElevatedButton(
-                              onPressed: () {
-                                dateProvider.jumpWeeks(3);
-                                _updateWeekKeyAndLoadPreference();
-                                setState(() {});
-                              },
-                              child: const Text("3"),
-                            ),
-                            const SizedBox(width: 4),
-                            ElevatedButton(
-                              onPressed: () {
-                                dateProvider.jumpWeeks(4);
-                                _updateWeekKeyAndLoadPreference();
-                                setState(() {});
-                              },
-                              child: const Text("4"),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    // Display the location switch.
+                              // Navigation and location switch controls.
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: Row(
+                                    children: [
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          dateProvider.previousWeek();
+                                          _updateWeekKeyAndLoadPreference();
+                                          setState(() {});
+                                        },
+                                        child: const Icon(Icons.arrow_back),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          dateProvider.nextWeek();
+                                          _updateWeekKeyAndLoadPreference();
+                                          setState(() {});
+                                        },
+                                        child: const Icon(Icons.arrow_forward),
+                                      ),
+                                      const SizedBox(width: 50),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          dateProvider
+                                              .currentDate(DateTime.now());
+                                          _updateWeekKeyAndLoadPreference();
+                                          setState(() {});
+                                        },
+                                        child: const Text("Now"),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          dateProvider.jumpWeeks(1);
+                                          _updateWeekKeyAndLoadPreference();
+                                          setState(() {});
+                                        },
+                                        child: const Text("1"),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          dateProvider.jumpWeeks(2);
+                                          _updateWeekKeyAndLoadPreference();
+                                          setState(() {});
+                                        },
+                                        child: const Text("2"),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          dateProvider.jumpWeeks(3);
+                                          _updateWeekKeyAndLoadPreference();
+                                          setState(() {});
+                                        },
+                                        child: const Text("3"),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          dateProvider.jumpWeeks(4);
+                                          _updateWeekKeyAndLoadPreference();
+                                          setState(() {});
+                                        },
+                                        child: const Text("4"),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              // Display the location switch.
 
-                    Expanded(
-                      child: BookingTable(
-                        timeList: timeList,
-                        morningTimeList: morningTimeList,
-                        filteredDays: filteredDays,
-                        saturday: saturday,
-                        location: Util.formatLocation(
-                            Provider.of<LocationProvider>(context)
-                                .selectedLocation),
-                        buildBookingCell: _buildBookingCell,
-                      ),
-                    ),
-                  ],
-                )),
-            Expanded(flex: 1, child: Container()),
-          ],
+                              Expanded(
+                                child: BookingTable(
+                                  timeList: timeList,
+                                  morningTimeList: morningTimeList,
+                                  filteredDays: filteredDays,
+                                  saturday: saturday,
+                                  location: Util.formatLocation(
+                                      Provider.of<LocationProvider>(context)
+                                          .selectedLocation),
+                                  buildBookingCell: _buildBookingCell,
+                                ),
+                              ),
+                            ],
+                          )),
+                      Expanded(flex: 1, child: Container()),
+                    ],
+                  ),
+                ),
+                Text(
+                  "Copyright © 2025 MiDev All Right reserved. ",
+                  style: TextStyle(fontSize: 8),
+                  textAlign: TextAlign.left,
+                )
+              ],
+            ),
+          ),
         ),
-
       );
     });
   }
