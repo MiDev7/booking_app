@@ -195,17 +195,45 @@ class DatabaseHelper {
   }
 
   Future<List<Map<String, dynamic>>> getAppointmentsByName(String name) async {
+    final trimmedName = name.trim();
+    List<Map<String, dynamic>> result;
     Database db = await database;
+    if (trimmedName.isEmpty) {
+      result = [];
+      return result;
+    } else {
+      final nameParts =
+          trimmedName.split(' ').where((part) => part.isNotEmpty).toList();
 
-    final firstName = name.split(' ')[0];
-    final parts = name.split(' ');
-    final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
-    final List<Map<String, dynamic>> result = await db.rawQuery(
-      "SELECT * FROM appointments WHERE patientFirstName LIKE ? OR patientLastName LIKE ?",
-      ['%$firstName%', '%$lastName%'],
-    );
+      if (nameParts.isEmpty) {
+        // This case handles if the input name was, for example, "   "
+        // and somehow passed the initial trimmedName.isEmpty check (though unlikely).
+        result = [];
+      } else if (nameParts.length == 1) {
+        // User provided a single name part (e.g., "John" or "Doe")
+        // Search for this part in both patientFirstName and patientLastName
+        final singleNamePart = nameParts[0];
+        result = await db.rawQuery(
+          "SELECT * FROM appointments WHERE patientFirstName LIKE ? OR patientLastName LIKE ?",
+          ['%$singleNamePart%', '%$singleNamePart%'],
+        );
+      } else {
+        // User provided multiple name parts (e.g., "John Doe")
+        // term1 is the first word, term2 is the rest of the string
+        final String term1 = nameParts[0];
+        final String term2 = nameParts.sublist(1).join(' ');
 
-    return result;
+        // Search for:
+        // 1. patientFirstName matches term1 AND patientLastName matches term2 (e.g., FN: John, LN: Doe)
+        // 2. patientFirstName matches term2 AND patientLastName matches term1 (e.g., FN: Doe, LN: John) - handles reversed order
+        result = await db.rawQuery(
+          "SELECT * FROM appointments WHERE (patientFirstName LIKE ? AND patientLastName LIKE ?) OR (patientFirstName LIKE ? AND patientLastName LIKE ?)",
+          ['%$term1%', '%$term2%', '%$term2%', '%$term1%'],
+        );
+      }
+
+      return result;
+    }
   }
 
   Future<void> setWeekPreference(String weekKey, String location) async {
