@@ -240,7 +240,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     try {
       return printers.firstWhere((printer) => printer.name == printerName);
     } catch (e) {
-      print(e);
       return null;
     }
   }
