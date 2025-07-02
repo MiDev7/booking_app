@@ -66,10 +66,9 @@ class DatabaseHelper {
 
   // Upgrade the appointments table
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-
-    if (oldVersion < 2 ) {
+    if (oldVersion < 2) {
       await db.execute('''
-       CREATE TABLE week_preferences(
+       CREATE TABLE IF NOT EXISTS week_preferences(
          week TEXT PRIMARY KEY,
          location TEXT
        )
@@ -77,9 +76,8 @@ class DatabaseHelper {
     }
 
     if (oldVersion < 3) {
-
       await db.execute('''
-      CREATE TABLE public_holidays (
+      CREATE TABLE IF NOT EXISTS public_holidays (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         date TEXT
       )
@@ -175,6 +173,7 @@ class DatabaseHelper {
       String id, String date, String time, String location) async {
     Database db = await database;
     try {
+      // ignore: unused_local_variable
       int result = await db.update(
         'appointments',
         {
@@ -193,8 +192,7 @@ class DatabaseHelper {
   }
 
   Future<int> isAppointmentBookedCount(
-      String date, String timeSlot, String location) async
-  {
+      String date, String timeSlot, String location) async {
     // Example: For a timeSlot "16:00", count appointments between 16:00 and 16:30.
     final parts = timeSlot.split(':');
     final hour = int.parse(parts[0]);
@@ -231,8 +229,7 @@ class DatabaseHelper {
     await db.delete('appointments');
   }
 
-  Future<List<Map<String, dynamic>>> getAppointmentsByName(String name) async
-  {
+  Future<List<Map<String, dynamic>>> getAppointmentsByName(String name) async {
     final trimmedName = name.trim();
     List<Map<String, dynamic>> result;
     Database db = await database;
@@ -300,27 +297,23 @@ class DatabaseHelper {
 
   // =======================================================================================
   // PUBLIC HOLIDAYS
-  Future<List<Map<String, dynamic>>> getPublicHolidays () async {
+  Future<List<Map<String, dynamic>>> getPublicHolidays() async {
     Database db = await database;
     return await db.query("public_holidays");
   }
 
-
-  Future<int> deletePublicHolidays (int id) async {
+  Future<int> deletePublicHolidays(int id) async {
     Database db = await database;
     return await db.delete('public_holidays', where: 'id = ?', whereArgs: [id]);
   }
 
-  Future<int> insertPublicHolidays (publicHolidaysModel publicHolidays) async {
+  Future<int> insertPublicHolidays(publicHolidaysModel publicHolidays) async {
     Database db = await database;
     return await db.insert('public_holidays', publicHolidays.toJson());
   }
 
-  Future<void> deleteAllPublicHolidays () async {
+  Future<void> deleteAllPublicHolidays() async {
     Database db = await database;
     await db.delete('public_holidays');
   }
-
-
-
 }

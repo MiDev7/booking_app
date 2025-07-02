@@ -1,5 +1,10 @@
+import 'package:booking_app/providers/date_provider.dart';
+import 'package:booking_app/providers/holiday_provider.dart';
+import 'package:booking_app/providers/location_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../utils/database_manager.dart';
 
 class StorageService {
@@ -27,6 +32,19 @@ class StorageService {
     if (backupFilePath != null) {
       try {
         await StorageManager.loadBackupDatabase(backupFilePath);
+
+        // 1. Reload holidays
+        await Provider.of<HolidayProvider>(context, listen: false)
+            .loadHolidays();
+
+        // 2. Reload location for the current week
+        final dateProvider = Provider.of<DateProvider>(context, listen: false);
+        final monday = dateProvider.workingDays
+            .firstWhere((d) => d.weekday == DateTime.monday);
+        final weekKey = DateFormat('yyyy-MM-dd').format(monday);
+        await Provider.of<LocationProvider>(context, listen: false)
+            .loadLocation(weekKey);
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Database restored from backup.")),
         );
