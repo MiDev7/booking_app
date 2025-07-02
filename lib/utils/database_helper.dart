@@ -69,7 +69,7 @@ class DatabaseHelper {
 
     if (oldVersion < 2 ) {
       await db.execute('''
-       CREATE TABLE week_preferences(
+       CREATE TABLE IF NOT EXISTS week_preferences(
          week TEXT PRIMARY KEY,
          location TEXT
        )
@@ -79,7 +79,7 @@ class DatabaseHelper {
     if (oldVersion < 3) {
 
       await db.execute('''
-      CREATE TABLE public_holidays (
+      CREATE TABLE IF NOT EXISTS public_holidays (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         date TEXT
       )
