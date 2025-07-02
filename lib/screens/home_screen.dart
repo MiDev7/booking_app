@@ -256,7 +256,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     return Consumer<HolidayProvider>(
         builder: (context, holidayProvider, child) {
       bool isHoliday = holidayProvider.holidays.any((holiday) {
-        final holidayDate = DateTime.parse(holiday);
+        final holidayDate = DateTime.parse(holiday['date']);
         return holidayDate.year == day.year &&
             holidayDate.month == day.month &&
             holidayDate.day == day.day;
@@ -352,7 +352,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                               .selectedLocation;
                                       final Printer? printer = await getPrinter(
                                           printProvider.printer);
-                                      final copies = 2;
+                                      final copies = 1;
                                       for (int i = 0; i < copies; i++) {
                                         await Printing.directPrintPdf(
                                           printer: printer!,
@@ -589,7 +589,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                             .selectedLocation;
                                     final Printer? printer =
                                         await getPrinter(printProvider.printer);
-                                    final copies = 2;
+                                    final copies = 1;
                                     for (int i = 0; i < copies; i++) {
                                       await Printing.directPrintPdf(
                                         printer: printer!,
@@ -1083,8 +1083,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   ),
                 ),
                 Text(
-                  "Copyright © 2025 MiDev All Right reserved. ",
-                  style: TextStyle(fontSize: 8),
+                  "Copyright © 2025 MiDev All Rights reserved. ",
+                  style: TextStyle(fontSize: 10),
                   textAlign: TextAlign.left,
                 )
               ],

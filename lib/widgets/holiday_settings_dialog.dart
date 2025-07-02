@@ -67,7 +67,7 @@ class _HolidaySettingsDialogState extends State<HolidaySettingsDialog> {
                         .addHoliday(_dateFormat.format(_selectedDate!));
 
                     setState(() {
-                      _selectedDate = null; // Reset the selected date
+                       // Reset the selected date
                       // SnackBar
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -77,6 +77,7 @@ class _HolidaySettingsDialogState extends State<HolidaySettingsDialog> {
                           duration: const Duration(seconds: 2),
                         ),
                       );
+                      _selectedDate = null;
                     });
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -106,6 +107,7 @@ class _HolidaySettingsDialogState extends State<HolidaySettingsDialog> {
                   child: SingleChildScrollView(
                     child: Column(
                       children: holidayProvider.holidays.map((holiday) {
+
                         // final formattedDate =
                         //     _dateFormatWithDay.format(DateTime.parse(holiday));
                         return Column(
@@ -113,7 +115,7 @@ class _HolidaySettingsDialogState extends State<HolidaySettingsDialog> {
                             ListTile(
                               title: Text(
                                   _dateFormatWithDay
-                                      .format(DateTime.parse(holiday)),
+                                      .format(DateTime.parse(holiday['date'] ?? '')),
                                   style:
                                       TextStyle(fontWeight: FontWeight.w500)),
                               trailing: IconButton(
@@ -122,7 +124,7 @@ class _HolidaySettingsDialogState extends State<HolidaySettingsDialog> {
                                   color: Colors.red[900],
                                 ),
                                 onPressed: () {
-                                  holidayProvider.removeHoliday(holiday);
+                                  holidayProvider.removeHoliday(holiday['date'] ?? '');
                                 },
                               ),
                             ),

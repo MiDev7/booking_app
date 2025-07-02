@@ -1,10 +1,14 @@
+import 'package:booking_app/models/public_holidays.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:booking_app/utils/database_helper.dart';
+import 'package:intl/intl.dart';
 
 class HolidayProvider extends ChangeNotifier {
-  List<String> _holidays = [];
+  List<Map<String, dynamic>> _holidays = [];
+  final DateFormat customFormat = DateFormat('dd-MMMM-yyyy');
 
-  List<String> get holidays => _holidays;
+  List<Map<String, dynamic>> get holidays => _holidays;
 
   HolidayProvider() {
     loadHolidays();
@@ -12,33 +16,43 @@ class HolidayProvider extends ChangeNotifier {
 
   Future<void> loadHolidays() async {
     final prefs = await SharedPreferences.getInstance();
+
+    // Load Data
+    final savedPublicHolidays = await DatabaseHelper().getPublicHolidays();
     final holidaysString = prefs.getStringList('holidays') ?? [];
-    _holidays = holidaysString;
+
+    var unSavedPublicHolidays = holidaysString.where((date) => !savedPublicHolidays.any((ph) => ph['date'] == date)).toList();
+
+    for (var unsavedDate in unSavedPublicHolidays) {
+
+      await DatabaseHelper().insertPublicHolidays(publicHolidaysModel(date: DateTime.parse(unsavedDate)));
+    }
+    _holidays = savedPublicHolidays;
     notifyListeners();
   }
 
   Future<void> addHoliday(String holiday) async {
-    if (!_holidays.contains(holiday)) {
-      _holidays.add(holiday);
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setStringList('holidays', _holidays);
-      notifyListeners();
+    var isHolidayExist = _holidays.any((ph) => ph['date'] == holiday);
+    if (!isHolidayExist)  {
+      await DatabaseHelper().insertPublicHolidays(publicHolidaysModel(date: DateTime.parse(holiday)));
+      _holidays = await DatabaseHelper().getPublicHolidays();
     }
+    notifyListeners();
   }
 
   Future<void> removeHoliday(String holiday) async {
-    if (_holidays.contains(holiday)) {
-      _holidays.remove(holiday);
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setStringList('holidays', _holidays);
-      notifyListeners();
+    var isHolidayExist = _holidays.any((ph) => ph['date'] == holiday);
+    if (isHolidayExist) {
+      int id = _holidays.firstWhere((ph) => ph['date'] == holiday, orElse: () => {})['id'];
+      await DatabaseHelper().deletePublicHolidays(id);
+      _holidays = await DatabaseHelper().getPublicHolidays();
     }
+    notifyListeners();
   }
 
   Future<void> clearHolidays() async {
     _holidays.clear();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('holidays');
+    await DatabaseHelper().deleteAllPublicHolidays();
     notifyListeners();
   }
 
