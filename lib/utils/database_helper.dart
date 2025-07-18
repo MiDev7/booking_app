@@ -245,19 +245,15 @@ class DatabaseHelper {
       if (mutableAppointment['phoneNumber'] == null &&
           mutableAppointment['patientFirstName'] != null &&
           mutableAppointment['patientLastName'] != null) {
-        final searchResults = await db.rawQuery('''
-          SELECT phoneNumber FROM patients
-          WHERE firstName = ? AND lastName = ?
-          LIMIT 1
-        ''', [
+        // Try to find phone number using enhanced name matching
+        final phoneNumber = await _findPhoneNumberByName(
+          db,
           mutableAppointment['patientFirstName'],
-          mutableAppointment['patientLastName']
-        ]);
+          mutableAppointment['patientLastName'],
+        );
 
-        if (searchResults.isNotEmpty &&
-            searchResults.first['phoneNumber'] != null) {
-          mutableAppointment['phoneNumber'] =
-              searchResults.first['phoneNumber'];
+        if (phoneNumber != null) {
+          mutableAppointment['phoneNumber'] = phoneNumber;
         }
       }
 
@@ -265,6 +261,126 @@ class DatabaseHelper {
     }
 
     return result;
+  }
+
+  // Enhanced method to find phone number by name with flexible matching
+  Future<String?> _findPhoneNumberByName(
+      Database db, String firstName, String lastName) async {
+    // Try exact match first
+    var searchResults = await db.rawQuery('''
+      SELECT phoneNumber FROM patients
+      WHERE firstName = ? AND lastName = ?
+      LIMIT 1
+    ''', [firstName, lastName]);
+
+    if (searchResults.isNotEmpty &&
+        searchResults.first['phoneNumber'] != null) {
+      return searchResults.first['phoneNumber'] as String;
+    }
+
+    // If exact match fails, try parsing the name fields for embedded information
+    // Handle cases like "John Doe payment 1000" where first/last names contain extra info
+
+    // Parse first name (might contain extra words)
+    final firstNameWords = firstName
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((word) => word.isNotEmpty)
+        .toList();
+
+    // Parse last name (might contain extra words)
+    final lastNameWords = lastName
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((word) => word.isNotEmpty)
+        .toList();
+
+    // Combine all words to try different combinations
+    final allWords = [...firstNameWords, ...lastNameWords];
+
+    if (allWords.length >= 2) {
+      // Try different combinations of words as first name and last name
+      for (int i = 0; i < allWords.length - 1; i++) {
+        for (int j = i + 1; j < allWords.length; j++) {
+          // Try word[i] as first name, word[j] as last name
+          searchResults = await db.rawQuery('''
+            SELECT phoneNumber FROM patients
+            WHERE firstName LIKE ? AND lastName LIKE ?
+            LIMIT 1
+          ''', ['%${allWords[i]}%', '%${allWords[j]}%']);
+
+          if (searchResults.isNotEmpty &&
+              searchResults.first['phoneNumber'] != null) {
+            return searchResults.first['phoneNumber'] as String;
+          }
+
+          // Try word[j] as first name, word[i] as last name (reversed)
+          searchResults = await db.rawQuery('''
+            SELECT phoneNumber FROM patients
+            WHERE firstName LIKE ? AND lastName LIKE ?
+            LIMIT 1
+          ''', ['%${allWords[j]}%', '%${allWords[i]}%']);
+
+          if (searchResults.isNotEmpty &&
+              searchResults.first['phoneNumber'] != null) {
+            return searchResults.first['phoneNumber'] as String;
+          }
+        }
+      }
+
+      // Try combinations of consecutive words
+      for (int startIdx = 0; startIdx < allWords.length - 1; startIdx++) {
+        for (int nameLength = 1;
+            nameLength <= 2 && startIdx + nameLength < allWords.length;
+            nameLength++) {
+          final potentialFirstName =
+              allWords.sublist(startIdx, startIdx + nameLength).join(' ');
+
+          for (int lastStartIdx = startIdx + nameLength;
+              lastStartIdx < allWords.length;
+              lastStartIdx++) {
+            for (int lastLength = 1;
+                lastLength <= 2 && lastStartIdx + lastLength <= allWords.length;
+                lastLength++) {
+              final potentialLastName = allWords
+                  .sublist(lastStartIdx, lastStartIdx + lastLength)
+                  .join(' ');
+
+              // Try this combination
+              searchResults = await db.rawQuery('''
+                SELECT phoneNumber FROM patients
+                WHERE firstName LIKE ? AND lastName LIKE ?
+                LIMIT 1
+              ''', ['%$potentialFirstName%', '%$potentialLastName%']);
+
+              if (searchResults.isNotEmpty &&
+                  searchResults.first['phoneNumber'] != null) {
+                return searchResults.first['phoneNumber'] as String;
+              }
+            }
+          }
+        }
+      }
+
+      // Last resort: try fuzzy matching with individual words
+      for (final word in allWords) {
+        if (word.length >= 3) {
+          // Only try words with 3+ characters to avoid false matches
+          searchResults = await db.rawQuery('''
+            SELECT phoneNumber, firstName, lastName FROM patients
+            WHERE firstName LIKE ? OR lastName LIKE ?
+            LIMIT 1
+          ''', ['%$word%', '%$word%']);
+
+          if (searchResults.isNotEmpty &&
+              searchResults.first['phoneNumber'] != null) {
+            return searchResults.first['phoneNumber'] as String;
+          }
+        }
+      }
+    }
+
+    return null; // No phone number found
   }
 
   // Get an appointment by its Date
