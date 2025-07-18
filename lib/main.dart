@@ -7,6 +7,8 @@ import 'package:booking_app/utils/database_helper.dart';
 import 'package:booking_app/screens/edit_appointment_screen.dart';
 import 'package:booking_app/screens/search_screen.dart';
 import 'package:booking_app/screens/appointment_day_screen.dart';
+import 'package:booking_app/screens/patient_management_screen.dart';
+import 'package:booking_app/screens/whatsapp_settings_screen.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -16,6 +18,7 @@ import 'package:booking_app/providers/location_provider.dart';
 import 'package:booking_app/providers/theme_provider.dart';
 import 'package:booking_app/providers/date_provider.dart';
 import 'package:booking_app/providers/storage_provider.dart';
+import 'package:booking_app/providers/patient_provider.dart';
 
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
@@ -41,6 +44,7 @@ Future<void> main() async {
       ChangeNotifierProvider(create: (_) => LocationProvider()),
       ChangeNotifierProvider(create: (_) => PrintProvider()),
       ChangeNotifierProvider(create: (_) => HolidayProvider()),
+      ChangeNotifierProvider(create: (_) => PatientProvider()),
     ],
     child: const MyApp(),
   ));
@@ -91,6 +95,8 @@ class MyApp extends StatelessWidget {
               location: args['location'],
             );
           },
+          '/patient-management': (context) => const PatientManagementScreen(),
+          '/whatsapp-settings': (context) => const WhatsAppSettingsScreen(),
         },
       );
     });

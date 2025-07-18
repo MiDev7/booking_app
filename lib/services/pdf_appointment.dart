@@ -12,7 +12,7 @@ class PdfAppointment {
     final pdf = Document();
     pdf.addPage(pw.MultiPage(
         build: (context) => [
-              _buildHeader(date, location: location),
+              _buildHeader(date, appointments, location: location),
               SizedBox(height: 20),
               _buildAppointment(appointments),
             ]));
@@ -71,7 +71,16 @@ class PdfAppointment {
     return output;
   }
 
-  static Widget _buildHeader(DateTime date, {String? location}) {
+  static Widget _buildHeader(
+      DateTime date, List<Map<String, dynamic>> appointments,
+      {String? location}) {
+    final appointmentsWithPhone = appointments
+        .where((apt) =>
+            apt['phoneNumber'] != null &&
+            apt['phoneNumber'].toString().isNotEmpty)
+        .length;
+    final totalAppointments = appointments.length;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.start,
@@ -86,17 +95,142 @@ class PdfAppointment {
             textAlign: TextAlign.left,
           ),
         ),
+        SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: PdfColors.grey100,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Total Appointments: $totalAppointments',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+              Text(
+                'With Phone Numbers: $appointmentsWithPhone',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
 
   static Widget _buildAppointment(List<Map<String, dynamic>> appointments) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: appointments.map((appointment) {
-        return Text(
-            "${appointment['patientFirstName']} ${appointment['patientLastName']}");
-      }).toList(),
+    if (appointments.isEmpty) {
+      return Center(
+        child: Text(
+          'No appointments found',
+          style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic),
+        ),
+      );
+    }
+
+    return Table(
+      border: TableBorder.all(color: PdfColors.grey400, width: 0.5),
+      columnWidths: {
+        0: const FlexColumnWidth(2), // Time
+        1: const FlexColumnWidth(4), // Name
+        2: const FlexColumnWidth(3), // Phone
+        3: const FlexColumnWidth(3), // Description
+      },
+      children: [
+        // Header row
+        TableRow(
+          decoration: const BoxDecoration(color: PdfColors.grey200),
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: Text(
+                'Time',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: Text(
+                'Patient Name',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: Text(
+                'Phone Number',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: Text(
+                'Notes',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        // Data rows
+        ...appointments.map((appointment) {
+          final patientName =
+              "${appointment['patientFirstName']} ${appointment['patientLastName']}";
+          final phoneNumber = appointment['phoneNumber']?.toString() ?? '';
+          final time = appointment['time']?.toString() ?? '';
+          final description = appointment['description']?.toString() ?? '';
+
+          return TableRow(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Text(
+                  time,
+                  style: const TextStyle(fontSize: 11),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Text(
+                  patientName,
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Text(
+                  phoneNumber.isNotEmpty ? phoneNumber : 'No phone',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: phoneNumber.isNotEmpty
+                        ? PdfColors.black
+                        : PdfColors.grey600,
+                    fontStyle: phoneNumber.isNotEmpty
+                        ? FontStyle.normal
+                        : FontStyle.italic,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Text(
+                  description.isNotEmpty ? description : '-',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: description.isNotEmpty
+                        ? PdfColors.black
+                        : PdfColors.grey600,
+                    fontStyle: description.isNotEmpty
+                        ? FontStyle.normal
+                        : FontStyle.italic,
+                  ),
+                ),
+              ),
+            ],
+          );
+        }),
+      ],
     );
   }
 }

@@ -100,6 +100,36 @@ class _EditAppointmentScreenState extends State<EditAppointmentScreen> {
                                     const SizedBox(height: 8),
                                     Text('Date: ${appointment['date']}'),
                                     Text('Time: ${appointment['time']}'),
+                                    if (appointment['description'] != null &&
+                                        appointment['description']
+                                            .toString()
+                                            .isNotEmpty)
+                                      Padding(
+                                        padding:
+                                            const EdgeInsets.only(top: 8.0),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Description:',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .primary,
+                                              ),
+                                            ),
+                                            Text(
+                                              appointment['description']
+                                                  .toString(),
+                                              style: TextStyle(
+                                                fontStyle: FontStyle.italic,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
                                   ],
                                 ),
                                 Row(

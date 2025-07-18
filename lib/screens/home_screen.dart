@@ -41,6 +41,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   bool _isLocationEditable = false;
 
   TextEditingController patientNameController = TextEditingController();
+  TextEditingController description = TextEditingController();
+
   int _bookingRefresh = 0;
   late String _weekKey;
 
@@ -206,8 +208,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   }
 
   //* Inserts an appointment using AppointmentModel.
-  Future<void> _bookAppointment(
-      String date, String time, String patientName) async {
+  Future<void> _bookAppointment(String date, String time, String patientName,
+      {String? description}) async {
     // Check if time hour is less than 10
     final timeParts = time.split(':');
     final hour = int.parse(timeParts[0]);
@@ -226,7 +228,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         date: DateTime.parse(date),
         time: time,
         location: Provider.of<LocationProvider>(context, listen: false)
-            .selectedLocation);
+            .selectedLocation,
+        description: description);
     await DatabaseHelper().insertAppointment(appointment);
     setState(() {
       _bookingRefresh++;
@@ -292,6 +295,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                         builder: (BuildContext context) {
                           TextEditingController patientNameController =
                               TextEditingController();
+                          TextEditingController descriptionController =
+                              TextEditingController();
                           return AlertDialog(
                             title: const Text('Book Appointment'),
                             content: Column(
@@ -307,6 +312,15 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                     labelText: 'Patient Name',
                                   ),
                                 ),
+                                const SizedBox(height: 8),
+                                TextField(
+                                  controller: descriptionController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Description (Optional)',
+                                    hintText: 'Enter appointment details...',
+                                  ),
+                                  maxLines: 2,
+                                ),
                               ],
                             ),
                             actions: [
@@ -320,7 +334,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                     return;
                                   }
                                   await _bookAppointment(formattedDate,
-                                      timeSlot, patientNameController.text);
+                                      timeSlot, patientNameController.text,
+                                      description: descriptionController.text
+                                              .trim()
+                                              .isEmpty
+                                          ? null
+                                          : descriptionController.text.trim());
                                   // Increment the refresh counter so that all FutureBuilders update.
                                   setState(() {
                                     _bookingRefresh++;
@@ -344,7 +363,14 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                         return;
                                       }
                                       await _bookAppointment(formattedDate,
-                                          timeSlot, patientNameController.text);
+                                          timeSlot, patientNameController.text,
+                                          description: descriptionController
+                                                  .text
+                                                  .trim()
+                                                  .isEmpty
+                                              ? null
+                                              : descriptionController.text
+                                                  .trim());
                                       final currentLocation =
                                           Provider.of<LocationProvider>(context,
                                                   listen: false)
@@ -446,6 +472,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                       builder: (BuildContext context) {
                         TextEditingController patientNameController =
                             TextEditingController();
+                        TextEditingController descriptionController =
+                            TextEditingController();
                         return AlertDialog(
                           title: const Text('Book Appointment'),
                           content: Column(
@@ -461,6 +489,15 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                   labelText: 'Patient Name',
                                 ),
                               ),
+                              const SizedBox(height: 8),
+                              TextField(
+                                controller: descriptionController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Description (Optional)',
+                                  hintText: 'Enter appointment details...',
+                                ),
+                                maxLines: 2,
+                              ),
                             ],
                           ),
                           actions: [
@@ -474,7 +511,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                   return;
                                 }
                                 await _bookAppointment(formattedDate, timeSlot,
-                                    patientNameController.text);
+                                    patientNameController.text,
+                                    description: descriptionController.text
+                                            .trim()
+                                            .isEmpty
+                                        ? null
+                                        : descriptionController.text.trim());
                                 // Increment the refresh counter so that all FutureBuilders update.
                                 setState(() {
                                   _bookingRefresh++;
@@ -581,7 +623,13 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                       return;
                                     }
                                     await _bookAppointment(formattedDate,
-                                        timeSlot, patientNameController.text);
+                                        timeSlot, patientNameController.text,
+                                        description: descriptionController.text
+                                                .trim()
+                                                .isEmpty
+                                            ? null
+                                            : descriptionController.text
+                                                .trim());
                                     final currentLocation =
                                         Provider.of<LocationProvider>(context,
                                                 listen: false)
@@ -873,6 +921,30 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     color: Theme.of(context).colorScheme.primary),
                 itemBuilder: (context) => [
                   PopupMenuItem(
+                    value: 'patient management',
+                    child: Row(
+                      children: [
+                        Icon(Icons.people,
+                            size: 20,
+                            color: Theme.of(context).colorScheme.primary),
+                        SizedBox(width: 10),
+                        Text('Patient Management')
+                      ],
+                    ),
+                  ),
+                  // PopupMenuItem(
+                  //   value: 'whatsapp settings',
+                  //   child: Row(
+                  //     children: [
+                  //       Icon(Icons.message,
+                  //           size: 20,
+                  //           color: Theme.of(context).colorScheme.primary),
+                  //       SizedBox(width: 10),
+                  //       Text('WhatsApp Settings')
+                  //     ],
+                  //   ),
+                  // ),
+                  PopupMenuItem(
                     value: 'storage settings',
                     child: Row(
                       children: [
@@ -924,7 +996,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   )
                 ],
                 onSelected: (value) {
-                  if (value == 'storage settings') {
+                  if (value == 'patient management') {
+                    Navigator.of(context).pushNamed('/patient-management');
+                  } else if (value == 'whatsapp settings') {
+                    Navigator.of(context).pushNamed('/whatsapp-settings');
+                  } else if (value == 'storage settings') {
                     _showSettingsDialog(context);
                   } else if (value == 'display settings') {
                     _showDisplaySettingsDialog(context);

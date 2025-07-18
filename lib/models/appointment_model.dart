@@ -9,6 +9,8 @@ class AppointmentModel {
   final DateTime date;
   final String time;
   final Location location;
+  final String? description;
+  final int? patientId;
 
   AppointmentModel({
     this.id,
@@ -17,6 +19,8 @@ class AppointmentModel {
     required this.date,
     required this.time,
     required this.location,
+    this.description,
+    this.patientId,
   });
 
   Map<String, dynamic> toJson() {
@@ -30,6 +34,8 @@ class AppointmentModel {
       'time': time,
       'location':
           location == Location.portLouis ? 'Port-Louis' : 'Quatre-Bornes',
+      if (description != null) 'description': description,
+      if (patientId != null) 'patientId': patientId,
     };
   }
 }

@@ -20,7 +20,6 @@ class DatabaseHelper {
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDatabase();
-    _database = await _initDatabase();
     return _database!;
   }
 
@@ -30,7 +29,7 @@ class DatabaseHelper {
     _dbPath = join(directory.path, 'appointments.db');
     return await openDatabase(
       _dbPath!,
-      version: 3,
+      version: 5,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -38,26 +37,39 @@ class DatabaseHelper {
 
   // Create the appointments table
   Future<void> _onCreate(Database db, int version) async {
+    // Create patients table
     await db.execute('''
-    CREATE TABLE appointments(
+    CREATE TABLE IF NOT EXISTS patients(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      patientFirstName TEXT,
-      patientLastName TEXT,
-      location TEXT,
-      date TEXT,
-      time TEXT
+      firstName TEXT NOT NULL,
+      lastName TEXT NOT NULL,
+      phoneNumber TEXT
     )
   ''');
 
     await db.execute('''
-  CREATE TABLE week_preferences (
+    CREATE TABLE IF NOT EXISTS appointments(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      patientId INTEGER,
+      patientFirstName TEXT,
+      patientLastName TEXT,
+      location TEXT,
+      description TEXT,
+      date TEXT,
+      time TEXT,
+      FOREIGN KEY (patientId) REFERENCES patients (id)
+    )
+  ''');
+
+    await db.execute('''
+  CREATE TABLE IF NOT EXISTS week_preferences (
     week TEXT PRIMARY KEY,
     location TEXT
     )
 ''');
 
     await db.execute('''
-    CREATE TABLE public_holidays (
+    CREATE TABLE IF NOT EXISTS public_holidays (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       date TEXT
     )
@@ -81,6 +93,29 @@ class DatabaseHelper {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         date TEXT
       )
+      ''');
+    }
+
+    if (oldVersion < 4) {
+      await db.execute('''
+      ALTER TABLE appointments ADD COLUMN description TEXT
+''');
+    }
+
+    if (oldVersion < 5) {
+      // Create patients table
+      await db.execute('''
+      CREATE TABLE IF NOT EXISTS patients(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        firstName TEXT NOT NULL,
+        lastName TEXT NOT NULL,
+        phoneNumber TEXT
+      )
+      ''');
+
+      // Add patientId column to appointments table
+      await db.execute('''
+      ALTER TABLE appointments ADD COLUMN patientId INTEGER
       ''');
     }
   }
@@ -111,6 +146,58 @@ class DatabaseHelper {
   }
 
   // =======================================================================================
+  // PATIENTS
+
+  // Insert a patient into the database
+  Future<int> insertPatient(Map<String, dynamic> patient) async {
+    Database db = await database;
+    return await db.insert('patients', patient);
+  }
+
+  // Get all patients from the database
+  Future<List<Map<String, dynamic>>> getPatients() async {
+    Database db = await database;
+    return await db.query('patients', orderBy: 'lastName, firstName');
+  }
+
+  // Get a patient by ID
+  Future<Map<String, dynamic>?> getPatientById(int id) async {
+    Database db = await database;
+    List<Map<String, dynamic>> result = await db.query(
+      'patients',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    return result.isNotEmpty ? result.first : null;
+  }
+
+  // Update a patient
+  Future<int> updatePatient(int id, Map<String, dynamic> patient) async {
+    Database db = await database;
+    return await db.update(
+      'patients',
+      patient,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  // Delete a patient
+  Future<int> deletePatient(int id) async {
+    Database db = await database;
+    return await db.delete('patients', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // Search patients by name or phone number
+  Future<List<Map<String, dynamic>>> searchPatients(String query) async {
+    Database db = await database;
+    return await db.rawQuery(
+      "SELECT * FROM patients WHERE firstName LIKE ? OR lastName LIKE ? OR phoneNumber LIKE ? ORDER BY lastName, firstName",
+      ['%$query%', '%$query%', '%$query%'],
+    );
+  }
+
+  // =======================================================================================
   // APPOINTMENTS
 
   // Insert an appointment into the database
@@ -131,6 +218,53 @@ class DatabaseHelper {
     Database db = await database;
     return await db.query('appointments',
         where: 'date = ? AND location = ?', whereArgs: [date, location]);
+  }
+
+  // Get appointments with patient phone numbers for a specific date and location
+  Future<List<Map<String, dynamic>>> getAppointmentsWithPhoneByDateAndLocation(
+      String date, String location) async {
+    Database db = await database;
+
+    // Join appointments with patients table to get phone numbers
+    final queryResult = await db.rawQuery('''
+      SELECT
+        a.*,
+        p.phoneNumber
+      FROM appointments a
+      LEFT JOIN patients p ON a.patientId = p.id
+      WHERE a.date = ? AND a.location = ?
+    ''', [date, location]);
+
+    // Create mutable copies and handle phone number lookup for appointments without patientId
+    final List<Map<String, dynamic>> result = [];
+
+    for (var appointment in queryResult) {
+      // Create a mutable copy of the appointment data
+      final mutableAppointment = Map<String, dynamic>.from(appointment);
+
+      if (mutableAppointment['phoneNumber'] == null &&
+          mutableAppointment['patientFirstName'] != null &&
+          mutableAppointment['patientLastName'] != null) {
+        final searchResults = await db.rawQuery('''
+          SELECT phoneNumber FROM patients
+          WHERE firstName = ? AND lastName = ?
+          LIMIT 1
+        ''', [
+          mutableAppointment['patientFirstName'],
+          mutableAppointment['patientLastName']
+        ]);
+
+        if (searchResults.isNotEmpty &&
+            searchResults.first['phoneNumber'] != null) {
+          mutableAppointment['phoneNumber'] =
+              searchResults.first['phoneNumber'];
+        }
+      }
+
+      result.add(mutableAppointment);
+    }
+
+    return result;
   }
 
   // Get an appointment by its Date
