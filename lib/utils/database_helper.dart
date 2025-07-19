@@ -43,8 +43,8 @@ class DatabaseHelper {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       firstName TEXT NOT NULL,
       lastName TEXT NOT NULL,
-      phoneNumber TEXT
-    )
+      phoneNumber TEXT,
+         )
   ''');
 
     await db.execute('''
@@ -97,9 +97,13 @@ class DatabaseHelper {
     }
 
     if (oldVersion < 4) {
-      await db.execute('''
-      ALTER TABLE appointments ADD COLUMN description TEXT
-''');
+      final columns = await db.rawQuery('PRAGMA table_info(appointments)');
+      final hasDescription = columns.any((column) => column['name'] == 'description');
+
+      if (!hasDescription) {
+        await db.execute('''
+        ALTER TABLE appointments ADD COLUMN description TEXT
+     ''');}
     }
 
     if (oldVersion < 5) {
@@ -113,10 +117,16 @@ class DatabaseHelper {
       )
       ''');
 
+
+      final columns = await db.rawQuery('PRAGMA table_info(appointments)');
+      final hasPatientId = columns.any((column) => column['name'] == 'patientId');
       // Add patientId column to appointments table
-      await db.execute('''
+      if (!hasPatientId) {
+        await db.execute('''
       ALTER TABLE appointments ADD COLUMN patientId INTEGER
       ''');
+      }
+
     }
   }
 
