@@ -76,8 +76,10 @@ class PdfAppointment {
       {String? location}) {
     final appointmentsWithPhone = appointments
         .where((apt) =>
-            apt['phoneNumber'] != null &&
-            apt['phoneNumber'].toString().isNotEmpty)
+            (apt['phoneNumber'] != null &&
+                apt['phoneNumber'].toString().isNotEmpty) ||
+            (apt['phoneNumber2'] != null &&
+                apt['phoneNumber2'].toString().isNotEmpty))
         .length;
     final totalAppointments = appointments.length;
 
@@ -160,7 +162,7 @@ class PdfAppointment {
             Padding(
               padding: const EdgeInsets.all(8),
               child: Text(
-                'Phone Number',
+                'Phone Numbers',
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
               ),
             ),
@@ -178,8 +180,21 @@ class PdfAppointment {
           final patientName =
               "${appointment['patientFirstName']} ${appointment['patientLastName']}";
           final phoneNumber = appointment['phoneNumber']?.toString() ?? '';
+          final phoneNumber2 = appointment['phoneNumber2']?.toString() ?? '';
           final time = appointment['time']?.toString() ?? '';
           final description = appointment['description']?.toString() ?? '';
+
+          // Combine phone numbers for display
+          String phoneDisplay = '';
+          if (phoneNumber.isNotEmpty && phoneNumber2.isNotEmpty) {
+            phoneDisplay = '$phoneNumber\n$phoneNumber2';
+          } else if (phoneNumber.isNotEmpty) {
+            phoneDisplay = phoneNumber;
+          } else if (phoneNumber2.isNotEmpty) {
+            phoneDisplay = phoneNumber2;
+          } else {
+            phoneDisplay = 'No phone';
+          }
 
           return TableRow(
             children: [
@@ -200,15 +215,16 @@ class PdfAppointment {
               Padding(
                 padding: const EdgeInsets.all(8),
                 child: Text(
-                  phoneNumber.isNotEmpty ? phoneNumber : 'No phone',
+                  phoneDisplay,
                   style: TextStyle(
                     fontSize: 10,
-                    color: phoneNumber.isNotEmpty
+                    color: (phoneNumber.isNotEmpty || phoneNumber2.isNotEmpty)
                         ? PdfColors.black
                         : PdfColors.grey600,
-                    fontStyle: phoneNumber.isNotEmpty
-                        ? FontStyle.normal
-                        : FontStyle.italic,
+                    fontStyle:
+                        (phoneNumber.isNotEmpty || phoneNumber2.isNotEmpty)
+                            ? FontStyle.normal
+                            : FontStyle.italic,
                   ),
                 ),
               ),
