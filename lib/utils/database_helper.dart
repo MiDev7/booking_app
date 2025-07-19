@@ -29,7 +29,7 @@ class DatabaseHelper {
     _dbPath = join(directory.path, 'appointments.db');
     return await openDatabase(
       _dbPath!,
-      version: 5,
+      version: 6,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -44,7 +44,8 @@ class DatabaseHelper {
       firstName TEXT NOT NULL,
       lastName TEXT NOT NULL,
       phoneNumber TEXT,
-         )
+      phoneNumber2 TEXT
+    )
   ''');
 
     await db.execute('''
@@ -98,12 +99,14 @@ class DatabaseHelper {
 
     if (oldVersion < 4) {
       final columns = await db.rawQuery('PRAGMA table_info(appointments)');
-      final hasDescription = columns.any((column) => column['name'] == 'description');
+      final hasDescription =
+          columns.any((column) => column['name'] == 'description');
 
       if (!hasDescription) {
         await db.execute('''
         ALTER TABLE appointments ADD COLUMN description TEXT
-     ''');}
+     ''');
+      }
     }
 
     if (oldVersion < 5) {
@@ -117,16 +120,28 @@ class DatabaseHelper {
       )
       ''');
 
-
       final columns = await db.rawQuery('PRAGMA table_info(appointments)');
-      final hasPatientId = columns.any((column) => column['name'] == 'patientId');
+      final hasPatientId =
+          columns.any((column) => column['name'] == 'patientId');
       // Add patientId column to appointments table
       if (!hasPatientId) {
         await db.execute('''
       ALTER TABLE appointments ADD COLUMN patientId INTEGER
       ''');
       }
+    }
 
+    if (oldVersion < 6) {
+      // Add second phone number column to patients table
+      final columns = await db.rawQuery('PRAGMA table_info(patients)');
+      final hasPhoneNumber2 =
+          columns.any((column) => column['name'] == 'phoneNumber2');
+
+      if (!hasPhoneNumber2) {
+        await db.execute('''
+        ALTER TABLE patients ADD COLUMN phoneNumber2 TEXT
+        ''');
+      }
     }
   }
 
@@ -202,9 +217,51 @@ class DatabaseHelper {
   Future<List<Map<String, dynamic>>> searchPatients(String query) async {
     Database db = await database;
     return await db.rawQuery(
-      "SELECT * FROM patients WHERE firstName LIKE ? OR lastName LIKE ? OR phoneNumber LIKE ? ORDER BY lastName, firstName",
-      ['%$query%', '%$query%', '%$query%'],
+      "SELECT * FROM patients WHERE firstName LIKE ? OR lastName LIKE ? OR phoneNumber LIKE ? OR phoneNumber2 LIKE ? ORDER BY lastName, firstName",
+      ['%$query%', '%$query%', '%$query%', '%$query%'],
     );
+  }
+
+  // Clear all patients from the database
+  Future<void> deleteAllPatients() async {
+    Database db = await database;
+    await db.delete('patients');
+  }
+
+  // Check for duplicate patient (same first and last name)
+  Future<Map<String, dynamic>?> findDuplicatePatient(
+      String firstName, String lastName) async {
+    Database db = await database;
+    List<Map<String, dynamic>> result = await db.query(
+      'patients',
+      where: 'LOWER(firstName) = ? AND LOWER(lastName) = ?',
+      whereArgs: [firstName.toLowerCase(), lastName.toLowerCase()],
+    );
+    return result.isNotEmpty ? result.first : null;
+  }
+
+  // Update patient phone numbers only
+  Future<int> updatePatientPhoneNumbers(
+      int id, String? phoneNumber1, String? phoneNumber2) async {
+    Database db = await database;
+    Map<String, dynamic> updateData = {};
+
+    if (phoneNumber1 != null && phoneNumber1.isNotEmpty) {
+      updateData['phoneNumber'] = phoneNumber1;
+    }
+    if (phoneNumber2 != null && phoneNumber2.isNotEmpty) {
+      updateData['phoneNumber2'] = phoneNumber2;
+    }
+
+    if (updateData.isNotEmpty) {
+      return await db.update(
+        'patients',
+        updateData,
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    }
+    return 0;
   }
 
   // =======================================================================================
@@ -239,7 +296,8 @@ class DatabaseHelper {
     final queryResult = await db.rawQuery('''
       SELECT
         a.*,
-        p.phoneNumber
+        p.phoneNumber,
+        p.phoneNumber2
       FROM appointments a
       LEFT JOIN patients p ON a.patientId = p.id
       WHERE a.date = ? AND a.location = ?
@@ -255,15 +313,18 @@ class DatabaseHelper {
       if (mutableAppointment['phoneNumber'] == null &&
           mutableAppointment['patientFirstName'] != null &&
           mutableAppointment['patientLastName'] != null) {
-        // Try to find phone number using enhanced name matching
-        final phoneNumber = await _findPhoneNumberByName(
+        // Try to find phone numbers using enhanced name matching
+        final phoneNumbers = await _findPhoneNumbersByName(
           db,
           mutableAppointment['patientFirstName'],
           mutableAppointment['patientLastName'],
         );
 
-        if (phoneNumber != null) {
-          mutableAppointment['phoneNumber'] = phoneNumber;
+        if (phoneNumbers['phoneNumber'] != null) {
+          mutableAppointment['phoneNumber'] = phoneNumbers['phoneNumber'];
+        }
+        if (phoneNumbers['phoneNumber2'] != null) {
+          mutableAppointment['phoneNumber2'] = phoneNumbers['phoneNumber2'];
         }
       }
 
@@ -273,19 +334,21 @@ class DatabaseHelper {
     return result;
   }
 
-  // Enhanced method to find phone number by name with flexible matching
-  Future<String?> _findPhoneNumberByName(
+  // Enhanced method to find phone numbers by name with flexible matching
+  Future<Map<String, String?>> _findPhoneNumbersByName(
       Database db, String firstName, String lastName) async {
     // Try exact match first
     var searchResults = await db.rawQuery('''
-      SELECT phoneNumber FROM patients
+      SELECT phoneNumber, phoneNumber2 FROM patients
       WHERE firstName = ? AND lastName = ?
       LIMIT 1
     ''', [firstName, lastName]);
 
-    if (searchResults.isNotEmpty &&
-        searchResults.first['phoneNumber'] != null) {
-      return searchResults.first['phoneNumber'] as String;
+    if (searchResults.isNotEmpty) {
+      return {
+        'phoneNumber': searchResults.first['phoneNumber'] as String?,
+        'phoneNumber2': searchResults.first['phoneNumber2'] as String?,
+      };
     }
 
     // If exact match fails, try parsing the name fields for embedded information
@@ -314,26 +377,34 @@ class DatabaseHelper {
         for (int j = i + 1; j < allWords.length; j++) {
           // Try word[i] as first name, word[j] as last name
           searchResults = await db.rawQuery('''
-            SELECT phoneNumber FROM patients
+            SELECT phoneNumber, phoneNumber2 FROM patients
             WHERE firstName LIKE ? AND lastName LIKE ?
             LIMIT 1
           ''', ['%${allWords[i]}%', '%${allWords[j]}%']);
 
           if (searchResults.isNotEmpty &&
-              searchResults.first['phoneNumber'] != null) {
-            return searchResults.first['phoneNumber'] as String;
+              (searchResults.first['phoneNumber'] != null ||
+                  searchResults.first['phoneNumber2'] != null)) {
+            return {
+              'phoneNumber': searchResults.first['phoneNumber'] as String?,
+              'phoneNumber2': searchResults.first['phoneNumber2'] as String?,
+            };
           }
 
           // Try word[j] as first name, word[i] as last name (reversed)
           searchResults = await db.rawQuery('''
-            SELECT phoneNumber FROM patients
+            SELECT phoneNumber, phoneNumber2 FROM patients
             WHERE firstName LIKE ? AND lastName LIKE ?
             LIMIT 1
           ''', ['%${allWords[j]}%', '%${allWords[i]}%']);
 
           if (searchResults.isNotEmpty &&
-              searchResults.first['phoneNumber'] != null) {
-            return searchResults.first['phoneNumber'] as String;
+              (searchResults.first['phoneNumber'] != null ||
+                  searchResults.first['phoneNumber2'] != null)) {
+            return {
+              'phoneNumber': searchResults.first['phoneNumber'] as String?,
+              'phoneNumber2': searchResults.first['phoneNumber2'] as String?,
+            };
           }
         }
       }
@@ -358,14 +429,19 @@ class DatabaseHelper {
 
               // Try this combination
               searchResults = await db.rawQuery('''
-                SELECT phoneNumber FROM patients
+                SELECT phoneNumber, phoneNumber2 FROM patients
                 WHERE firstName LIKE ? AND lastName LIKE ?
                 LIMIT 1
               ''', ['%$potentialFirstName%', '%$potentialLastName%']);
 
               if (searchResults.isNotEmpty &&
-                  searchResults.first['phoneNumber'] != null) {
-                return searchResults.first['phoneNumber'] as String;
+                  (searchResults.first['phoneNumber'] != null ||
+                      searchResults.first['phoneNumber2'] != null)) {
+                return {
+                  'phoneNumber': searchResults.first['phoneNumber'] as String?,
+                  'phoneNumber2':
+                      searchResults.first['phoneNumber2'] as String?,
+                };
               }
             }
           }
@@ -377,20 +453,27 @@ class DatabaseHelper {
         if (word.length >= 3) {
           // Only try words with 3+ characters to avoid false matches
           searchResults = await db.rawQuery('''
-            SELECT phoneNumber, firstName, lastName FROM patients
+            SELECT phoneNumber, phoneNumber2, firstName, lastName FROM patients
             WHERE firstName LIKE ? OR lastName LIKE ?
             LIMIT 1
           ''', ['%$word%', '%$word%']);
 
           if (searchResults.isNotEmpty &&
-              searchResults.first['phoneNumber'] != null) {
-            return searchResults.first['phoneNumber'] as String;
+              (searchResults.first['phoneNumber'] != null ||
+                  searchResults.first['phoneNumber2'] != null)) {
+            return {
+              'phoneNumber': searchResults.first['phoneNumber'] as String?,
+              'phoneNumber2': searchResults.first['phoneNumber2'] as String?,
+            };
           }
         }
       }
     }
 
-    return null; // No phone number found
+    return {
+      'phoneNumber': null,
+      'phoneNumber2': null,
+    }; // No phone numbers found
   }
 
   // Get an appointment by its Date

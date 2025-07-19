@@ -3,7 +3,6 @@ import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import 'dart:convert';
 import '../utils/database_helper.dart';
-import '../models/patient_model.dart';
 
 class PatientManagementScreen extends StatefulWidget {
   const PatientManagementScreen({super.key});
@@ -63,11 +62,13 @@ class _PatientManagementScreenState extends State<PatientManagementScreen> {
           final firstName = patient['firstName']?.toLowerCase() ?? '';
           final lastName = patient['lastName']?.toLowerCase() ?? '';
           final phoneNumber = patient['phoneNumber']?.toLowerCase() ?? '';
+          final phoneNumber2 = patient['phoneNumber2']?.toLowerCase() ?? '';
           final searchQuery = query.toLowerCase();
 
           return firstName.contains(searchQuery) ||
               lastName.contains(searchQuery) ||
-              phoneNumber.contains(searchQuery);
+              phoneNumber.contains(searchQuery) ||
+              phoneNumber2.contains(searchQuery);
         }).toList();
       }
     });
@@ -77,6 +78,7 @@ class _PatientManagementScreenState extends State<PatientManagementScreen> {
     final firstNameController = TextEditingController();
     final lastNameController = TextEditingController();
     final phoneController = TextEditingController();
+    final phone2Controller = TextEditingController();
     final formKey = GlobalKey<FormState>();
 
     showDialog(
@@ -119,7 +121,16 @@ class _PatientManagementScreenState extends State<PatientManagementScreen> {
               TextFormField(
                 controller: phoneController,
                 decoration: const InputDecoration(
-                  labelText: 'Phone Number (Optional)',
+                  labelText: 'Phone Number 1 (Optional)',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: phone2Controller,
+                decoration: const InputDecoration(
+                  labelText: 'Phone Number 2 (Optional)',
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.phone,
@@ -136,15 +147,37 @@ class _PatientManagementScreenState extends State<PatientManagementScreen> {
             onPressed: () async {
               if (formKey.currentState!.validate()) {
                 try {
-                  final patient = PatientModel(
-                    firstName: firstNameController.text.trim(),
-                    lastName: lastNameController.text.trim(),
-                    phoneNumber: phoneController.text.trim().isEmpty
-                        ? null
-                        : phoneController.text.trim(),
+                  // Check for duplicate patient
+                  final existingPatient =
+                      await _databaseHelper.findDuplicatePatient(
+                    firstNameController.text.trim(),
+                    lastNameController.text.trim(),
                   );
 
-                  await _databaseHelper.insertPatient(patient.toJson());
+                  if (existingPatient != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Patient "${firstNameController.text.trim()} ${lastNameController.text.trim()}" already exists!',
+                        ),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
+                    return;
+                  }
+
+                  final patient = {
+                    'firstName': firstNameController.text.trim(),
+                    'lastName': lastNameController.text.trim(),
+                    'phoneNumber': phoneController.text.trim().isEmpty
+                        ? null
+                        : phoneController.text.trim(),
+                    'phoneNumber2': phone2Controller.text.trim().isEmpty
+                        ? null
+                        : phone2Controller.text.trim(),
+                  };
+
+                  await _databaseHelper.insertPatient(patient);
                   Navigator.of(context).pop();
                   _loadPatients();
 
@@ -171,6 +204,8 @@ class _PatientManagementScreenState extends State<PatientManagementScreen> {
     final lastNameController = TextEditingController(text: patient['lastName']);
     final phoneController =
         TextEditingController(text: patient['phoneNumber'] ?? '');
+    final phone2Controller =
+        TextEditingController(text: patient['phoneNumber2'] ?? '');
     final formKey = GlobalKey<FormState>();
 
     showDialog(
@@ -213,7 +248,16 @@ class _PatientManagementScreenState extends State<PatientManagementScreen> {
               TextFormField(
                 controller: phoneController,
                 decoration: const InputDecoration(
-                  labelText: 'Phone Number (Optional)',
+                  labelText: 'Phone Number 1 (Optional)',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: phone2Controller,
+                decoration: const InputDecoration(
+                  labelText: 'Phone Number 2 (Optional)',
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.phone,
@@ -230,17 +274,19 @@ class _PatientManagementScreenState extends State<PatientManagementScreen> {
             onPressed: () async {
               if (formKey.currentState!.validate()) {
                 try {
-                  final updatedPatient = PatientModel(
-                    id: patient['id'],
-                    firstName: firstNameController.text.trim(),
-                    lastName: lastNameController.text.trim(),
-                    phoneNumber: phoneController.text.trim().isEmpty
+                  final updatedPatient = {
+                    'firstName': firstNameController.text.trim(),
+                    'lastName': lastNameController.text.trim(),
+                    'phoneNumber': phoneController.text.trim().isEmpty
                         ? null
                         : phoneController.text.trim(),
-                  );
+                    'phoneNumber2': phone2Controller.text.trim().isEmpty
+                        ? null
+                        : phone2Controller.text.trim(),
+                  };
 
                   await _databaseHelper.updatePatient(
-                      patient['id'], updatedPatient.toJson());
+                      patient['id'], updatedPatient);
                   Navigator.of(context).pop();
                   _loadPatients();
 
@@ -335,7 +381,8 @@ class _PatientManagementScreenState extends State<PatientManagementScreen> {
                   const SizedBox(height: 8),
                   const Text('• Surnom → Last Name (required)'),
                   const Text('• Prenom → First Name (required)'),
-                  const Text('• Tel. Mobile → Phone Number (optional)'),
+                  const Text('• Tel. Domicile → Phone Number 2 (optional)'),
+                  const Text('• Tel. Mobile → Phone Number 1 (optional)'),
                   const SizedBox(height: 16),
                   const Text(
                     'Note: Duplicate patients will be skipped.',
@@ -401,9 +448,10 @@ class _PatientManagementScreenState extends State<PatientManagementScreen> {
               continue;
             }
 
-            // Extract: Surnom (index 1), Prenom (index 2), Tel. Mobile (index 4)
+            // Extract: Surnom (index 1), Prenom (index 2), Tel. Domicile (index 3), Tel. Mobile (index 4)
             final surnom = fields.length > 1 ? fields[1].trim() : '';
             final prenom = fields.length > 2 ? fields[2].trim() : '';
+            final telDomicile = fields.length > 3 ? fields[3].trim() : '';
             final telMobile = fields.length > 4 ? fields[4].trim() : '';
 
             // Validate required fields
@@ -413,24 +461,50 @@ class _PatientManagementScreenState extends State<PatientManagementScreen> {
               continue;
             }
 
-            // Create patient
-            final patient = PatientModel(
-              firstName: prenom,
-              lastName: surnom,
-              phoneNumber: telMobile.isEmpty ? null : telMobile,
-            );
-
             // Check if patient already exists
-            final existingPatients =
-                await _databaseHelper.searchPatients('$prenom $surnom');
-            if (existingPatients.isNotEmpty) {
-              errors.add(
-                  'Line ${i + 1}: Patient "$prenom $surnom" already exists');
-              skippedCount++;
+            final existingPatient =
+                await _databaseHelper.findDuplicatePatient(prenom, surnom);
+            if (existingPatient != null) {
+              // Update phone numbers if they're missing in existing record
+              bool updated = false;
+              if (existingPatient['phoneNumber'] == null &&
+                  telMobile.isNotEmpty) {
+                await _databaseHelper.updatePatientPhoneNumbers(
+                  existingPatient['id'],
+                  telMobile,
+                  existingPatient['phoneNumber2'],
+                );
+                updated = true;
+              }
+              if (existingPatient['phoneNumber2'] == null &&
+                  telDomicile.isNotEmpty) {
+                await _databaseHelper.updatePatientPhoneNumbers(
+                  existingPatient['id'],
+                  existingPatient['phoneNumber'],
+                  telDomicile,
+                );
+                updated = true;
+              }
+
+              if (!updated) {
+                errors.add(
+                    'Line ${i + 1}: Patient "$prenom $surnom" already exists');
+                skippedCount++;
+              } else {
+                importedCount++;
+              }
               continue;
             }
 
-            await _databaseHelper.insertPatient(patient.toJson());
+            // Create patient
+            final patient = {
+              'firstName': prenom,
+              'lastName': surnom,
+              'phoneNumber': telMobile.isEmpty ? null : telMobile,
+              'phoneNumber2': telDomicile.isEmpty ? null : telDomicile,
+            };
+
+            await _databaseHelper.insertPatient(patient);
             importedCount++;
           } catch (e) {
             errors.add('Line ${i + 1}: ${e.toString()}');
@@ -448,6 +522,64 @@ class _PatientManagementScreenState extends State<PatientManagementScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error importing CSV: $e')),
       );
+    }
+  }
+
+  Future<void> _showClearDatabaseDialog() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear All Patients'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+                'This will permanently delete ALL patients from the database.'),
+            SizedBox(height: 8),
+            Text(
+              'This action cannot be undone!',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.red,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child:
+                const Text('Delete All', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await _databaseHelper.deleteAllPatients();
+        await _loadPatients();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('All patients deleted successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error clearing database: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -556,6 +688,17 @@ class _PatientManagementScreenState extends State<PatientManagementScreen> {
             label: const Text('Import CSV'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.secondary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton.icon(
+            onPressed: _showClearDatabaseDialog,
+            icon: const Icon(Icons.delete_sweep),
+            label: const Text('Clear All'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red[400],
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
@@ -719,20 +862,53 @@ class _PatientManagementScreenState extends State<PatientManagementScreen> {
                                   fontSize: 16,
                                 ),
                               ),
-                              subtitle: patient['phoneNumber'] != null
-                                  ? Text(
-                                      patient['phoneNumber'],
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (patient['phoneNumber'] != null ||
+                                      patient['phoneNumber2'] != null) ...[
+                                    if (patient['phoneNumber'] != null)
+                                      Row(
+                                        children: [
+                                          Icon(Icons.phone,
+                                              size: 16,
+                                              color: Colors.grey[600]),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            'Mobile: ${patient['phoneNumber']}',
+                                            style: TextStyle(
+                                              color: Colors.grey[600],
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    )
-                                  : Text(
-                                      'No phone number',
+                                    if (patient['phoneNumber2'] != null)
+                                      Row(
+                                        children: [
+                                          Icon(Icons.home,
+                                              size: 16,
+                                              color: Colors.grey[600]),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            'Home: ${patient['phoneNumber2']}',
+                                            style: TextStyle(
+                                              color: Colors.grey[600],
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                  ] else
+                                    Text(
+                                      'No phone numbers',
                                       style: TextStyle(
                                         color: Colors.grey[400],
                                         fontStyle: FontStyle.italic,
                                       ),
                                     ),
+                                ],
+                              ),
                               trailing: PopupMenuButton<String>(
                                 onSelected: (action) {
                                   switch (action) {

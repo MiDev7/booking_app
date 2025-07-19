@@ -2,7 +2,7 @@ import 'package:booking_app/screens/pdf_preview_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:booking_app/utils/database_helper.dart';
 import 'package:booking_app/services/pdf_appointment.dart';
-import 'package:booking_app/services/whatsapp_service.dart';
+// import 'package:booking_app/services/whatsapp_service.dart';
 
 class AppointmentDayScreen extends StatefulWidget {
   final String date;
@@ -62,135 +62,135 @@ class _AppointmentDayScreenState extends State<AppointmentDayScreen> {
     Navigator.of(context).push(MaterialPageRoute(
         builder: (context) => PdfPreviewScreen(pdfData: pdf)));
   }
+  // TODO: To complete for cancellation functionality
+  // Future<void> _cancelSingleAppointment(
+  //     Map<String, dynamic> appointment) async {
+  //   if (appointment['phoneNumber'] == null ||
+  //       appointment['phoneNumber'].toString().isEmpty) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(
+  //         content: Text('No phone number available for this patient.'),
+  //         backgroundColor: Colors.orange,
+  //       ),
+  //     );
+  //     return;
+  //   }
 
-  Future<void> _cancelSingleAppointment(
-      Map<String, dynamic> appointment) async {
-    if (appointment['phoneNumber'] == null ||
-        appointment['phoneNumber'].toString().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No phone number available for this patient.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
+  //   final patientName =
+  //       '${appointment['patientFirstName']} ${appointment['patientLastName']}';
 
-    final patientName =
-        '${appointment['patientFirstName']} ${appointment['patientLastName']}';
+  //   final success = await WhatsAppService.sendCancellationMessage(
+  //     phoneNumber: appointment['phoneNumber'].toString(),
+  //     patientName: patientName,
+  //     date: appointment['date'].toString(),
+  //     time: appointment['time'].toString(),
+  //     location: widget.location,
+  //   );
 
-    final success = await WhatsAppService.sendCancellationMessage(
-      phoneNumber: appointment['phoneNumber'].toString(),
-      patientName: patientName,
-      date: appointment['date'].toString(),
-      time: appointment['time'].toString(),
-      location: widget.location,
-    );
+  //   if (success) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(
+  //         content: Text('WhatsApp message sent to $patientName'),
+  //         backgroundColor: Colors.green,
+  //       ),
+  //     );
+  //   } else {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(
+  //         content: Text('Failed to send message to $patientName'),
+  //         backgroundColor: Colors.red,
+  //       ),
+  //     );
+  //   }
+  // }
 
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('WhatsApp message sent to $patientName'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to send message to $patientName'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
+  // Future<void> _cancelAllAppointments() async {
+  //   final appointments = await _fetchAppointments();
 
-  Future<void> _cancelAllAppointments() async {
-    final appointments = await _fetchAppointments();
+  //   if (appointments.isEmpty) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(
+  //         content: Text('No appointments to cancel.'),
+  //         backgroundColor: Colors.orange,
+  //       ),
+  //     );
+  //     return;
+  //   }
 
-    if (appointments.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No appointments to cancel.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
+  //   // Filter appointments with phone numbers
+  //   final appointmentsWithPhone = appointments
+  //       .where((apt) =>
+  //           apt['phoneNumber'] != null &&
+  //           apt['phoneNumber'].toString().isNotEmpty)
+  //       .toList();
 
-    // Filter appointments with phone numbers
-    final appointmentsWithPhone = appointments
-        .where((apt) =>
-            apt['phoneNumber'] != null &&
-            apt['phoneNumber'].toString().isNotEmpty)
-        .toList();
+  //   if (appointmentsWithPhone.isEmpty) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(
+  //         content: Text('No appointments have phone numbers available.'),
+  //         backgroundColor: Colors.orange,
+  //       ),
+  //     );
+  //     return;
+  //   }
 
-    if (appointmentsWithPhone.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No appointments have phone numbers available.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
+  //   // Show confirmation dialog
+  //   final confirmed = await showDialog<bool>(
+  //     context: context,
+  //     builder: (context) => AlertDialog(
+  //       title: const Text('Cancel All Appointments'),
+  //       content: Text(
+  //           'Send cancellation messages to ${appointmentsWithPhone.length} patient(s)?'),
+  //       actions: [
+  //         TextButton(
+  //           onPressed: () => Navigator.of(context).pop(false),
+  //           child: const Text('Cancel'),
+  //         ),
+  //         ElevatedButton(
+  //           onPressed: () => Navigator.of(context).pop(true),
+  //           style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+  //           child: const Text('Send Messages'),
+  //         ),
+  //       ],
+  //     ),
+  //   );
 
-    // Show confirmation dialog
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Cancel All Appointments'),
-        content: Text(
-            'Send cancellation messages to ${appointmentsWithPhone.length} patient(s)?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Send Messages'),
-          ),
-        ],
-      ),
-    );
+  //   if (confirmed == true) {
+  //     // Show progress dialog
+  //     showDialog(
+  //       context: context,
+  //       barrierDismissible: false,
+  //       builder: (context) => const AlertDialog(
+  //         content: Row(
+  //           children: [
+  //             CircularProgressIndicator(),
+  //             SizedBox(width: 16),
+  //             Text('Sending messages...'),
+  //           ],
+  //         ),
+  //       ),
+  //     );
 
-    if (confirmed == true) {
-      // Show progress dialog
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const AlertDialog(
-          content: Row(
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(width: 16),
-              Text('Sending messages...'),
-            ],
-          ),
-        ),
-      );
+  //     final results = await WhatsAppService.sendBulkCancellationMessages(
+  //       appointments: appointmentsWithPhone,
+  //       location: widget.location,
+  //     );
 
-      final results = await WhatsAppService.sendBulkCancellationMessages(
-        appointments: appointmentsWithPhone,
-        location: widget.location,
-      );
+  //     Navigator.of(context).pop(); // Close progress dialog
 
-      Navigator.of(context).pop(); // Close progress dialog
+  //     final successCount = results.where((r) => r).length;
 
-      final successCount = results.where((r) => r).length;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              'Sent $successCount out of ${appointmentsWithPhone.length} messages successfully.'),
-          backgroundColor: successCount == appointmentsWithPhone.length
-              ? Colors.green
-              : Colors.orange,
-        ),
-      );
-    }
-  }
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(
+  //         content: Text(
+  //             'Sent $successCount out of ${appointmentsWithPhone.length} messages successfully.'),
+  //         backgroundColor: successCount == appointmentsWithPhone.length
+  //             ? Colors.green
+  //             : Colors.orange,
+  //       ),
+  //     );
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -372,13 +372,43 @@ class _AppointmentDayScreenState extends State<AppointmentDayScreen> {
                                             ),
                                             SizedBox(width: 4),
                                             Text(
-                                              appointment['phoneNumber']
-                                                  .toString(),
+                                              'Mobile: ${appointment['phoneNumber'].toString()}',
                                               style: TextStyle(
                                                 color: Theme.of(context)
                                                     .colorScheme
                                                     .primary,
                                                 fontWeight: FontWeight.w500,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    if (appointment['phoneNumber2'] != null &&
+                                        appointment['phoneNumber2']
+                                            .toString()
+                                            .isNotEmpty)
+                                      Padding(
+                                        padding:
+                                            const EdgeInsets.only(top: 4.0),
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.home,
+                                              size: 16,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .primary,
+                                            ),
+                                            SizedBox(width: 4),
+                                            Text(
+                                              'Home: ${appointment['phoneNumber2'].toString()}',
+                                              style: TextStyle(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .primary,
+                                                fontWeight: FontWeight.w500,
+                                                fontSize: 13,
                                               ),
                                             ),
                                           ],
